@@ -1,7 +1,7 @@
 from bottle import route, run, template, static_file
 import gunicorn
 from crawler import *
-from random import shuffle
+from random import shuffle, choice
 
 @route('/static/:path#.+#', name='static')
 def static(path):
@@ -28,7 +28,19 @@ def upcoming():
         'header' : 'BJJ',
         "events" : events,
     }
+    return template('views/upcoming', data)
+
+@route('/random')
+def random():
+    calendar = get_calendar()
+    shuffle(calendar)
+    events = [get_event_info(choice(calendar))]
+    data = {
+        'title' : 'BJJ random event',
+        'header' : 'BJJ',
+        "events" : events,
+    }
     return template('views/random', data)
+   
 
-
-run(host='localhost', port=8090, server='gunicorn', workers=4)
+run(host='10.10.1.143', port=58095, server='gunicorn', workers=4)

@@ -2,3 +2,4 @@ bottle
 gunicorn
 lxml
 requests
+elasticsearch

@@ -1,6 +1,15 @@
 import json
 import requests
 import lxml.html
+import logging
+from elasticsearch import Elasticsearch
+import hashlib
+import time, datetime
+import base64
+import random
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s: %(levelname)s %(message)s')
+es = Elasticsearch(["192.168.0.19:11200", "192.168.0.2:11200", "192.168.0.5:11200"], maxsize=25)
 
 def get_proxy():
     proxy_url = 'https://api.getproxylist.com/proxy?' \
@@ -49,6 +58,8 @@ def get_event_info(link):
         event = r.text
         tree = lxml.html.fromstring(event)
 
+        event_info['url'] = link
+
         img = tree.xpath(".//div[@id='container']//ul[contains(@id,'banner')]//img/@src")
         event_info['img'] = img[0] if img else ""
 
@@ -58,10 +69,52 @@ def get_event_info(link):
         date = tree.xpath(".//div[contains(@id, 'post')]//abbr")
         event_info['date'] = date[0].text_content() if date else "not found"
 
+        relevant_dates = tree.xpath(".//div[contains(@id, 'championships-dates')]//ul//li")
+        event_info['relevant_dates'] = [i.text_content() for i in relevant_dates] if relevant_dates else []
+
         location = tree.xpath(".//div[contains(@id, 'post-info')]//address")
         event_info['location'] = location[0].text_content().strip() if location else "not found"
 
+        info = tree.xpath(".//div[contains(@id, 'post-info')]//span")
+        event_info['info'] = [i.text_content().strip() for i in info] if info else []
+
         divisions = tree.xpath(".//div[contains(@id, 'divisions')]//table")
         event_info['divisions'] = divisions[0].text_content() if divisions else "not found"
+
         return event_info
     return {}
+
+def save_to_db(event):
+    try:
+        doc_id = hashlib.sha256((event["url"] + str(int(time.time()))).encode()).hexdigest()              
+        r = requests.get(event.get("img"))
+        if r.ok:
+            img = str(base64.b64encode(r.content))
+        else:
+            img = ""
+    
+        doc = {   
+            "url" : event.get("url"),
+            "img" : img,
+            "date" : event.get("date"),
+            "relevant_dates" : event.get("relevant_dates"),
+            "location" : event.get("location"),
+            "info" : event.get("info"),
+            "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
+            "other" : {"divisions" : event.get("divisions")},
+        }
+        doc["id"] = doc_id
+        res = es.index(index = "bjj_test", doc_type = 'event', id = doc.get("id"), body = doc)
+        logging.info(res)        
+    except Exception as e:
+        logging.error(str(e))
+
+def events_to_db():
+    events = get_calendar()
+    for i in events:
+        try:
+            event = get_event_info(i)
+            save_to_db(event)
+        except Exception as e:
+            logging.error(str(e))
+    

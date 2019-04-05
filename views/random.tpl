@@ -28,6 +28,8 @@
                <ul class="nav-list vcenter">
                   <li class="nav-item"><a class="item-anchor" href="/">EVENTS</a></li>
                   <li class="nav-item"><a class="item-anchor" href="/upcoming">UPCOMING</a></li>
+                  <li class="nav-item"><a class="item-anchor" href="/random">RANDOM</a></li>
+                  <li class="nav-item"><a class="item-anchor" href="/all">ALL</a></li>
                </ul>
             </div>
          </div>
