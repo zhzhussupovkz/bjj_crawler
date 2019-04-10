@@ -7,6 +7,7 @@ import hashlib
 import time, datetime
 import base64
 import random
+import dateparser
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s: %(levelname)s %(message)s')
 es = Elasticsearch(["192.168.0.19:11200", "192.168.0.2:11200", "192.168.0.5:11200"], maxsize=25)
@@ -67,19 +68,26 @@ def get_event_info(link):
         event_info['name'] = name[0].text_content() if name else "not found"
 
         date = tree.xpath(".//div[contains(@id, 'post')]//abbr")
-        event_info['date'] = date[0].text_content() if date else "not found"
+        date_str = date[0].text_content() if date else "not found"
+        date_str = date_str.replace(" and", ",").replace("&", ",").split(" ")
+        df = ["{} {} {}".format(date_str[0],i, date_str[-1]) for i in date_str[1:-1]]
+        dates = [dateparser.parse(i) for i in df]
+        dates = list(filter(None, dates))
+        event_info['date'] = dates
 
-        relevant_dates = tree.xpath(".//div[contains(@id, 'championships-dates')]//ul//li")
-        event_info['relevant_dates'] = [i.text_content() for i in relevant_dates] if relevant_dates else []
+        relevant_dates = tree.xpath(".//div[contains(@id, 'championships-dates')]//ul//li//abbr")
+        relevant_dates = [i.text_content().strip("\n").strip("\t").replace("\t", "") for i in relevant_dates] if relevant_dates else []
+        event_info["relevant_dates"] = relevant_dates
 
         location = tree.xpath(".//div[contains(@id, 'post-info')]//address")
         event_info['location'] = location[0].text_content().strip() if location else "not found"
 
         info = tree.xpath(".//div[contains(@id, 'post-info')]//span")
-        event_info['info'] = [i.text_content().strip() for i in info] if info else []
+        info = [i.text_content().strip().replace("\t", "").replace("\n", " ").replace("\r", "") for i in info] if info else []
+        event_info["info"] = list(filter(None, info))
 
-        divisions = tree.xpath(".//div[contains(@id, 'divisions')]//table")
-        event_info['divisions'] = divisions[0].text_content() if divisions else "not found"
+        divisions = tree.xpath(".//div[contains(@id, 'divisions')]//table//tbody//tr//td")
+        event_info['divisions'] = [t.text_content() for t in divisions] if divisions else []
 
         return event_info
     return {}
@@ -89,19 +97,19 @@ def save_to_db(event):
         doc_id = hashlib.sha256((event["url"] + str(int(time.time()))).encode()).hexdigest()              
         r = requests.get(event.get("img"))
         if r.ok:
-            img = str(base64.b64encode(r.content))
+            img = str(base64.b64encode(r.content).decode("utf-8"))
         else:
             img = ""
     
         doc = {   
             "url" : event.get("url"),
             "img" : img,
-            "date" : event.get("date"),
+            "date" : [i.strftime("%Y-%m-%d") for i in event.get("date")],
             "relevant_dates" : event.get("relevant_dates"),
             "location" : event.get("location"),
             "info" : event.get("info"),
             "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
-            "other" : {"divisions" : event.get("divisions")},
+            "additional_props" : {"divisions" : event.get("divisions")},
         }
         doc["id"] = doc_id
         res = es.index(index = "bjj_test", doc_type = 'event', id = doc.get("id"), body = doc)
@@ -117,4 +125,32 @@ def events_to_db():
             save_to_db(event)
         except Exception as e:
             logging.error(str(e))
+
+def get_events(size, offset):
+    query = {
+        "match_all" : {}
+    }
+    res = es.search(index = 'bjj_test', body = {'query' : query, 'size' : size, 'from' : offset})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['date'],
+            "location" : item['_source']['location'],
+            "img" : item['_source']['img'],
+            }
+        fin.append(current)
+    return fin
+
+#get_events(size=25, offset = 0)
     
+    
+    
+    
+
+#events_to_db()
+#event = get_calendar()[10]
+#event = "https://ibjjf.com/championship/world-jiu-jitsu-championship/"
+#for i,j in get_event_info(event).items():
+#    print (i, j)
