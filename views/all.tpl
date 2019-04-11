@@ -10,6 +10,9 @@
 
     <!-- Bootstrap core CSS -->
     <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
     <style>
       .bd-placeholder-img {
@@ -75,6 +78,11 @@
         <div class="card-body">
           <p class="card-text">{{item['location']}}</p>
         </div>
+        <div class="card-footer text-muted">
+          <p>
+          <img style="width: 48px; display: block;" src="data:image/jpg;base64, {{item['ranking']}}" alt="Ranking">
+          </p>            
+        </div>
       </div>
     % end
     </div>
@@ -82,13 +90,25 @@
 
   <footer class="mt-auto">
     <div class="container">
-      <p>BJJ events by <a href="mailto:zhzhussupovkz@gmail.com">@zhzhussupovkz</a></p>
+      <p>
+      <div class="float-left">BJJ events by <a href="mailto:zhzhussupovkz@gmail.com">@zhzhussupovkz</a></div>
+      <div class="float-right">
+        <a id="back-to-top" href="#" class="btn btn-primary btn-sm back-to-top" role="button">back to top</a>
+      </div></p>
     </div>
   </footer>
-
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function(){
+        // scroll body to 0px on click
+        $('#back-to-top').click(function () {
+            $('#back-to-top').tooltip('hide');
+            $('body,html').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });  
+    });
+  </script>
 </body>
 </html>
 

@@ -22,3 +22,7 @@ code {
   font-size: 80%;
 }
 
+.back-to-top {
+    bottom: 20px;
+    right: 20px;
+}

@@ -10,6 +10,9 @@
 
     <!-- Bootstrap core CSS -->
     <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
     <style>
       .bd-placeholder-img {
@@ -75,6 +78,11 @@
         <div class="card-body">
           <p class="card-text">{{item['location']}}</p>
         </div>
+        <div class="card-footer text-muted">
+          <p>
+          <img style="width: 48px; display: block;" src="data:image/jpg;base64, {{item['ranking']}}" alt="Ranking">
+          </p>            
+        </div>
       </div>
     % end
     </div>
@@ -85,10 +93,6 @@
       <p>BJJ events by <a href="mailto:zhzhussupovkz@gmail.com">@zhzhussupovkz</a></p>
     </div>
   </footer>
-
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 </body>
 </html>
 

@@ -32,6 +32,7 @@ def get_proxy():
         return proxies
     return None
 
+# get events from calendar
 def get_events_calendar():
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -47,6 +48,7 @@ def get_events_calendar():
         return links
     return []
 
+# parse current event by link
 def get_event_info(link):
     if link.startswith("//ibjjf.com"):
         link = "https:" + link
@@ -92,20 +94,36 @@ def get_event_info(link):
         divisions = tree.xpath(".//div[contains(@id, 'divisions')]//table//tbody//tr//td")
         event_info['divisions'] = [t.text_content() for t in divisions] if divisions else []
 
+        ranking = tree.xpath(".//div[contains(@id, 'post-info')]//span//img[contains(@class, 'wp-image')]/@src")
+        event_info['ranking'] = ranking[-1] if ranking else ""
+
+        if event_info['ranking'].startswith("//ibjjf.com"):
+            event_info['ranking'] = "https:" + event_info.get("ranking")
+
         return event_info
     return {}
 
+# save event to db
 def save_to_db(event):
     try:
+        # save image
         r = requests.get(event.get("img"))
         if r.ok:
             img = str(base64.b64encode(r.content).decode("utf-8"))
         else:
             img = ""
+
+        # save ranking image
+        r = requests.get(event.get("ranking"))
+        if r.ok:
+            ranking_img = str(base64.b64encode(r.content).decode("utf-8"))
+        else:
+            ranking_img = ""
     
         doc = {   
             "url" : event.get("url"),
             "img" : img,
+            "ranking" : ranking_img,
             "name" : event.get("name"),
             "date" : [i.strftime("%Y-%m-%d") for i in event.get("date")],
             "relevant_dates" : event.get("relevant_dates"),
@@ -121,6 +139,7 @@ def save_to_db(event):
     except Exception as e:
         logging.error(str(e))
 
+# crawling events and save to db
 def events_to_db():
     events = get_events_calendar()
     for i in events:
@@ -130,6 +149,7 @@ def events_to_db():
         except Exception as e:
             logging.error(str(e))
 
+# get events from db
 def get_events(size, offset):
     query = {
         "match_all" : {}
@@ -150,10 +170,12 @@ def get_events(size, offset):
             "name" : item['_source']['name'],
             "location" : item['_source']['location'],
             "img" : item['_source']['img'],
+            "ranking" : item['_source']['ranking'],
             }
         fin.append(current)
     return fin
 
+# get upcoming events from db (5 days)
 def get_upcoming_events():
     now = datetime.datetime.now()
     end_date = now + datetime.timedelta(days=5)
@@ -182,6 +204,25 @@ def get_upcoming_events():
             "name" : item['_source']['name'],
             "location" : item['_source']['location'],
             "img" : item['_source']['img'],
+            "ranking" : item['_source']['ranking'],
             }
         fin.append(current)
     return fin
+
+# get event by id
+def get_event_by_id(event_id):
+    res = es.get(index = "bjj_test", doc_type = 'event', id = event_id)
+    item = res["_source"]
+    current = {
+        "url" : item['url'],
+        "date" : item['date'],
+        "name" : item['name'],
+        #"img" : item['img'],
+        "info" : item["info"],
+        "ranking" : item['ranking'],
+    }
+    return current
+
+#events_to_db()
+
+#print (get_event_by_id("6cd12d98dddba3e141dae9e54f35b4f2366353fcd655dff508d00fa27249f672"))
