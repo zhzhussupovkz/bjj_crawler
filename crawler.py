@@ -38,7 +38,6 @@ def get_events_calendar():
     }
     s = requests.session()
     proxies = get_proxy()
-    #if proxies:
     r = s.get(url = "https://ibjjf.com/championships/calendar/", headers = headers) #, proxies = proxies)
     if r.ok:
         calendar = r.text
@@ -74,9 +73,7 @@ def get_event_info(link):
         date_str = date_str.replace(" *", ",").replace("* ", ",").split(" ")
         date_str = list(filter(lambda d: (d != ","), date_str))
         date_str = list(filter(None, date_str))
-        #print (date_str)
         df = ["{} {} {}".format(date_str[0], i, date_str[-1]) for i in date_str[1:-1]]
-        #print (df)
         dates = [dateparser.parse(i) for i in df]
         dates = list(filter(None, dates))
         event_info['date'] = list(set(dates))
@@ -157,16 +154,34 @@ def get_events(size, offset):
         fin.append(current)
     return fin
 
-#get_events(size=25, offset = 0)
-    
-    
-    
-#print (get_events_calendar())    
-
-#es.indices.delete(index='bjj_test', ignore=[400, 404])
-#events_to_db()
-#events = get_events_calendar()
-#event = "https://ibjjf.com/championship/ireland-national-jiu-jitsu/"
-#for i,j in get_event_info(event).items():
-#    print (i, j)
-
+def get_upcoming_events():
+    now = datetime.datetime.now()
+    end_date = now + datetime.timedelta(days=5)
+    query = {
+        "range" : {
+            "date" : {
+                "gte" : now.strftime("%Y-%m-%d"),
+                "lte" : end_date.strftime("%Y-%m-%d"),
+                "boost" : 2.0
+        }
+      }
+    }
+    sort = [
+        {
+          "date": {
+            "order": "asc"
+          }
+        }
+      ]
+    res = es.search(index = 'bjj_test', body = {'query' : query, 'size' : 5}) #, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['name'],
+            "location" : item['_source']['location'],
+            "img" : item['_source']['img'],
+            }
+        fin.append(current)
+    return fin

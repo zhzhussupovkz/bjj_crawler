@@ -9,20 +9,7 @@ def static(path):
 
 @route('/')
 def index():
-    calendar = get_calendar()
-    events = [get_event_info(i) for i in calendar[3:6]]
-    data = {
-        'title' : 'BJJ test',
-        'header' : 'BJJ',
-        "events" : events,
-    }
-    return template('views/index', data)
-
-@route('/upcoming')
-def upcoming():
-    calendar = get_calendar()
-    shuffle(calendar)
-    events = [get_event_info(i) for i in calendar[3:6]]
+    events = get_upcoming_events()
     data = {
         'title' : 'BJJ test',
         'header' : 'BJJ',
@@ -32,7 +19,7 @@ def upcoming():
 
 @route('/random')
 def random():
-    calendar = get_calendar()
+    calendar = get_events_calendar()
     shuffle(calendar)
     events = [get_event_info(choice(calendar))]
     data = {
@@ -50,8 +37,6 @@ def all():
         'header' : 'BJJ',
         "events" : events,
     }
-    return template('views/all', data)
-
-   
+    return template('views/all', data) 
 
 run(host='10.10.1.143', port=58095, server='gunicorn', workers=4)
