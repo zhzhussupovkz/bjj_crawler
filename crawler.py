@@ -32,7 +32,7 @@ def get_proxy():
         return proxies
     return None
 
-def get_calendar():
+def get_events_calendar():
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
     }
@@ -43,7 +43,8 @@ def get_calendar():
     if r.ok:
         calendar = r.text
         tree = lxml.html.fromstring(calendar)
-        links = tree.xpath(".//div[contains(@id, 'content')]//table//a/@href")
+        links = tree.xpath(".//div[contains(@id, 'content')]//table//tr//td//a/@href")
+        links = list(filter(lambda i: "ibjjf.com" in i, links))
         return links
     return []
 
@@ -68,12 +69,17 @@ def get_event_info(link):
         event_info['name'] = name[0].text_content() if name else "not found"
 
         date = tree.xpath(".//div[contains(@id, 'post')]//abbr")
-        date_str = date[0].text_content() if date else "not found"
-        date_str = date_str.replace(" and", ",").replace("&", ",").split(" ")
-        df = ["{} {} {}".format(date_str[0],i, date_str[-1]) for i in date_str[1:-1]]
+        date_str = date[0].text_content().strip("*") if date else "not found"
+        date_str = date_str.replace(" and", ",").replace("and ", ",").replace(" &", ",").replace("& ", ",")
+        date_str = date_str.replace(" *", ",").replace("* ", ",").split(" ")
+        date_str = list(filter(lambda d: (d != ","), date_str))
+        date_str = list(filter(None, date_str))
+        #print (date_str)
+        df = ["{} {} {}".format(date_str[0], i, date_str[-1]) for i in date_str[1:-1]]
+        #print (df)
         dates = [dateparser.parse(i) for i in df]
         dates = list(filter(None, dates))
-        event_info['date'] = dates
+        event_info['date'] = list(set(dates))
 
         relevant_dates = tree.xpath(".//div[contains(@id, 'championships-dates')]//ul//li//abbr")
         relevant_dates = [i.text_content().strip("\n").strip("\t").replace("\t", "") for i in relevant_dates] if relevant_dates else []
@@ -94,7 +100,6 @@ def get_event_info(link):
 
 def save_to_db(event):
     try:
-        doc_id = hashlib.sha256((event["url"] + str(int(time.time()))).encode()).hexdigest()              
         r = requests.get(event.get("img"))
         if r.ok:
             img = str(base64.b64encode(r.content).decode("utf-8"))
@@ -104,6 +109,7 @@ def save_to_db(event):
         doc = {   
             "url" : event.get("url"),
             "img" : img,
+            "name" : event.get("name"),
             "date" : [i.strftime("%Y-%m-%d") for i in event.get("date")],
             "relevant_dates" : event.get("relevant_dates"),
             "location" : event.get("location"),
@@ -111,6 +117,7 @@ def save_to_db(event):
             "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
             "additional_props" : {"divisions" : event.get("divisions")},
         }
+        doc_id = hashlib.sha256((event["url"] + ",".join(doc.get("date"))).encode()).hexdigest()
         doc["id"] = doc_id
         res = es.index(index = "bjj_test", doc_type = 'event', id = doc.get("id"), body = doc)
         logging.info(res)        
@@ -118,7 +125,7 @@ def save_to_db(event):
         logging.error(str(e))
 
 def events_to_db():
-    events = get_calendar()
+    events = get_events_calendar()
     for i in events:
         try:
             event = get_event_info(i)
@@ -130,13 +137,20 @@ def get_events(size, offset):
     query = {
         "match_all" : {}
     }
-    res = es.search(index = 'bjj_test', body = {'query' : query, 'size' : size, 'from' : offset})
+    sort = [
+        {
+          "date": {
+            "order": "asc"
+          }
+        }
+      ]
+    res = es.search(index = 'bjj_test', body = {'query' : query, 'size' : size, 'from' : offset, 'sort' : sort})
     fin = []
     for item in res['hits']['hits']:
         current = {
             "url" : item['_source']['url'],
             "date" : item['_source']['date'],
-            "name" : item['_source']['date'],
+            "name" : item['_source']['name'],
             "location" : item['_source']['location'],
             "img" : item['_source']['img'],
             }
@@ -147,10 +161,12 @@ def get_events(size, offset):
     
     
     
-    
+#print (get_events_calendar())    
 
+#es.indices.delete(index='bjj_test', ignore=[400, 404])
 #events_to_db()
-#event = get_calendar()[10]
-#event = "https://ibjjf.com/championship/world-jiu-jitsu-championship/"
+#events = get_events_calendar()
+#event = "https://ibjjf.com/championship/ireland-national-jiu-jitsu/"
 #for i,j in get_event_info(event).items():
 #    print (i, j)
+

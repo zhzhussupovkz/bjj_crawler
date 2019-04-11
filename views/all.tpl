@@ -49,7 +49,11 @@
                 <div class="col-md-12">
                     <img class="img-responsive margin-top-45" src="data:image/jpg;base64, {{item['img']}}" alt={{item['name']}}>
                     <p><b>{{item['name']}}</b></p>
-                    <p>{{item['date']}}</p>
+                    <p>
+                        % for d in item['date']:
+                            {{d}}<br/>
+                        % end
+                    </p>
                     <p>{{item['location']}}</p>
                </div>
             % end
