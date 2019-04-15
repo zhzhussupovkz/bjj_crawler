@@ -53,6 +53,11 @@
           <li class="nav-item active">
             <a class="nav-link" href="#">All<span class="sr-only">(current)</span></a>
           </li>
+          %if user:
+            <li class="nav-item">
+              <a class="nav-link" href="/logout">Logout</a>
+            </li>
+          %end
         </ul>
         <form class="form-inline mt-2 mt-md-0">
           <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">

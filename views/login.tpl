@@ -33,19 +33,27 @@
     <link href="static/css/signin.css" rel="stylesheet">
   </head>
   <body class="text-center">
-    <form class="form-signin">
+    <form action method="post" class="form-signin" id="login_form">
   <img class="mb-4" src="static/img/login.png" alt="" width="72" height="72">
   <legend>Log in</legend>
   <div class="form-group">
       <label for="inputEmail" class="sr-only">Email address</label>
-      <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+      <input type="email" name="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
   </div>
   <div class="form-group">
       <label for="inputPassword" class="sr-only">Password</label>
-      <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+      <input type="password" name="password" id="inputPassword" class="form-control" placeholder="Password" required>
   </div>      
   <button class="btn btn-lg btn-primary btn-block" type="submit">Go!</button>
   <p class="mt-5 mb-3 text-muted">&copy; bjj events</p>
 </form>
+
+    <script type="text/javascript">
+        $(document).ready(function($) {
+            $("#login_form").submit(function(e) {
+                $('#submit').prop('disabled', true);
+             });
+        });
+    </script>
 </body>
 </html>
