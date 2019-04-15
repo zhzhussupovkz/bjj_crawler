@@ -7,6 +7,14 @@ from random import shuffle, choice
 def static(path):
     return static_file(path, root='static')
 
+@route('/login')
+def index():
+    data = {
+        'title' : 'BJJ test',
+        'header' : 'BJJ',
+    }
+    return template('views/login', data)
+
 @route('/')
 def index():
     events = get_upcoming_events()
