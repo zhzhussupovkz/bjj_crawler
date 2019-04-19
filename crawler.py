@@ -48,6 +48,21 @@ def get_events_calendar():
         return links
     return []
 
+# get events uaejjf
+def uaejjf_get_calendar():
+    headers = {
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
+    }
+    s = requests.session()
+    r = s.get(url = "https://events.uaejjf.org/en/federation/1/events", headers = headers)
+    if r.ok:
+        calendar = r.text
+        tree = lxml.html.fromstring(calendar)
+        links = tree.xpath(".//section[contains(@id, 'upcoming')]//div[contains(@class, 'event-bg')]//div[contains(@class, 'content')]//a/@href")
+        links = list(filter(lambda i: "uaejjf.org" in i, links))
+        return links
+    return []
+
 # parse current event by link
 def get_event_info(link):
     if link.startswith("//ibjjf.com"):
@@ -103,6 +118,59 @@ def get_event_info(link):
         return event_info
     return {}
 
+# get uaejjf event info
+def uaejjf_get_event(link):
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
+    }
+    r = requests.get(url = link, headers = headers)
+    if r.ok:
+        event_info = {}
+
+        event = r.text
+        tree = lxml.html.fromstring(event)
+
+        event_info['url'] = link
+
+        img = tree.xpath(".//div[contains(@class, 'cover-image')]//img/@src")
+        event_info['img'] = img[0] if img else ""
+
+        #name = tree.xpath(".//div[contains(@class, 'cover-heading')]//h1")
+        #event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
+
+        #name_test = tree.xpath(".//div[contains(@class, 'container')]//h1")
+        #event_info['name'] = name_test[0].text_content().strip().replace("\n", "") if name_test else "not found"
+
+        name = tree.xpath(".//title")
+        event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
+        
+        date = tree.xpath(".//div[contains(@class, 'date event')]//strong")
+        year = datetime.datetime.now().year
+        df = ["{} {}".format(i.text_content().replace("\n","").strip(), year) for i in date]
+        dates = [dateparser.parse(i) for i in df]
+        dates = list(filter(None, dates))
+        event_info['date'] = list(set(dates))
+
+        event_info["relevant_dates"] = []
+
+        location = tree.xpath(".//div[contains(@class, 'location')]")
+        event_info['location'] = location[0].text_content().strip() if location else "not found"
+
+        info = tree.xpath(".//div[contains(@class, 'information')]")
+        info = [i.text_content().strip().replace("\t", " ").replace("\n", " ").replace("\r", " ") for i in info] if info else []
+        event_info["info"] = list(filter(None, info))
+
+        entries = tree.xpath(".//div[contains(@class, 'panel-inverted')]//ul")
+        entries = entries[-1].xpath(".//li")
+        entries = [i.text_content().strip().replace("\n", " ") for i in entries] if entries else []
+        event_info['entries'] = entries
+
+        event_info["register_link"] = "{}/register".format(link.strip("/"))
+
+        return event_info
+        
+    return {}
+    
 # save event to db
 def save_to_db(event):
     try:
@@ -139,6 +207,38 @@ def save_to_db(event):
     except Exception as e:
         logging.error(str(e))
 
+def uaejjf_save(event):
+    try:
+        if not event.get("img").startswith("https://events.uaejjf.org"):
+            event['img'] = "https://events.uaejjf.org" + event.get("img")
+        if event.get("img").startswith("//events"):
+            event['img'] = "https:" + event.get("img")
+        # save image
+        r = requests.get(event.get("img"))
+        if r.ok:
+            img = str(base64.b64encode(r.content).decode("utf-8"))
+        else:
+            img = ""
+    
+        doc = {   
+            "url" : event.get("url"),
+            "img" : img,
+            "entries" : event.get("entries"),
+            "name" : event.get("name"),
+            "date" : [i.strftime("%Y-%m-%d") for i in event.get("date")],
+            "relevant_dates" : event.get("relevant_dates"),
+            "register_link" : event.get("register_link"),
+            "location" : event.get("location"),
+            "info" : event.get("info"),
+            "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
+        }
+        doc_id = hashlib.sha256((event["url"] + ",".join(doc.get("date"))).encode()).hexdigest()
+        doc["id"] = doc_id
+        res = es.index(index = "uaejjf_test", doc_type = 'event', id = doc.get("id"), body = doc)
+        logging.info(res)        
+    except Exception as e:
+        logging.error(str(e))
+
 # crawling events and save to db
 def events_to_db():
     events = get_events_calendar()
@@ -146,6 +246,16 @@ def events_to_db():
         try:
             event = get_event_info(i)
             save_to_db(event)
+        except Exception as e:
+            logging.error(str(e))
+
+# crawling uaejjf events and save to db
+def uaejjf_to_db():
+    events = uaejjf_get_calendar()
+    for i in events:
+        try:
+            event = uaejjf_get_event(i)
+            uaejjf_save(event)
         except Exception as e:
             logging.error(str(e))
 
@@ -209,6 +319,73 @@ def get_upcoming_events():
         fin.append(current)
     return fin
 
+# get upcoming events from db (5 days)
+def uaejjf_get_upcoming_events():
+    now = datetime.datetime.now()
+    end_date = now + datetime.timedelta(days=5)
+    query = {
+        "range" : {
+            "date" : {
+                "gte" : now.strftime("%Y-%m-%d"),
+                "lte" : end_date.strftime("%Y-%m-%d"),
+                "boost" : 2.0
+        }
+      }
+    }
+    sort = [
+        {
+          "date": {
+            "order": "asc"
+          }
+        }
+      ]
+    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 5}) #, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['name'],
+            "location" : item['_source']['location'],
+            "img" : item['_source']['img'],
+            "register" : item['_source']['register_link'],
+            }
+        fin.append(current)
+    return fin
+
+# get all upcoming events
+def get_upcoming_all():
+    now = datetime.datetime.now()
+    end_date = now + datetime.timedelta(days=7)
+    query = {
+        "range" : {
+            "date" : {
+                "gte" : now.strftime("%Y-%m-%d"),
+                "lte" : end_date.strftime("%Y-%m-%d"),
+                "boost" : 2.0
+        }
+      }
+    }
+    sort = [
+        {
+          "date": {
+            "order": "asc"
+          }
+        }
+      ]
+    res = es.search(index = 'bjj_test,uaejjf_test', body = {'query' : query, 'size' : 5}) #, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['name'],
+            "location" : item['_source']['location'],
+            "img" : item['_source']['img'],
+            }
+        fin.append(current)
+    return fin
+
 # get event by id
 def get_event_by_id(event_id):
     res = es.get(index = "bjj_test", doc_type = 'event', id = event_id)
@@ -222,6 +399,10 @@ def get_event_by_id(event_id):
         "ranking" : item['ranking'],
     }
     return current
+
+#c = uaejjf_get_calendar()
+#uaejjf_get_event(c[-14])
+#uaejjf_to_db()
 
 #events_to_db()
 

@@ -9,7 +9,7 @@
     <title>{{title}}</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
@@ -31,21 +31,27 @@
       }
     </style>
     <!-- Custom styles for this template -->
-    <link href="static/css/cover.css" rel="stylesheet">
+    <link href="/static/css/cover.css" rel="stylesheet">
   </head>
 
   <body class="d-flex flex-column h-100">
   <header>
     <!-- Fixed navbar -->
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-      <a class="navbar-brand" href="/">{{title}}</a>
+      <a class="navbar-brand" href="/">{{header}}</a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="/">Upcoming</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Upcoming</a>
+            <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
+              <a class="dropdown-item" href="/">IBJJF</a>
+              <a class="dropdown-item" href="/upcoming/uaejjf">UAEJJF</a>
+            <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="/upcoming/all">ALL</a>
+            </div>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/random">Random</a>

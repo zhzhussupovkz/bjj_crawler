@@ -30,7 +30,7 @@ def static(path):
 def login():
     data = {
         'title' : 'BJJ test',
-        'header' : 'BJJ',
+        'header' : 'BJJ events',
     }
     return template('views/login', data)
 
@@ -43,7 +43,7 @@ def login_logic():
         response.set_cookie("adm", login, secret='bjj', path='/', max_age=3600)
         data = {
             'title' : 'BJJ test',
-            'header' : 'BJJ',
+            'header' : 'BJJ events',
             'user' : login,
         }
         redirect('/')
@@ -62,8 +62,8 @@ def logout():
 def index():
     events = get_upcoming_events()
     data = {
-        'title' : 'BJJ test',
-        'header' : 'BJJ',
+        'title' : 'BJJ events - UPCOMING IBJJF',
+        'header' : 'BJJ events',
         "events" : events,
     }
     if request.get_cookie("adm"):
@@ -73,6 +73,41 @@ def index():
         redirect("/login")
     return template('views/upcoming', data)
 
+# upcoming uaejjf events by current date
+@route('/upcoming/uaejjf')
+@login_required
+def upcoming_uaejjf():
+    events = uaejjf_get_upcoming_events()
+    data = {
+        'title' : 'BJJ events - UPCOMING UAEJJF',
+        'header' : 'BJJ events',
+        "events" : events,
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/upcoming_uaejjf', data)
+
+# upcoming all events by current date
+@route('/upcoming/all')
+@login_required
+def upcoming_all():
+    events = get_upcoming_all()
+    data = {
+        'title' : 'BJJ events - UPCOMING EVENTS',
+        'header' : 'BJJ events',
+        "events" : events,
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/upcoming_all', data)
+
+
 # random event
 @route('/random')
 @login_required
@@ -81,8 +116,8 @@ def random():
     shuffle(calendar)
     events = [get_event_info(choice(calendar))]
     data = {
-        'title' : 'BJJ random event',
-        'header' : 'BJJ',
+        'title' : 'BJJ events - RANDOM EVENT',
+        'header' : 'BJJ events',
         "events" : events,
     }
     if request.get_cookie("adm"):
@@ -98,8 +133,8 @@ def random():
 def all():
     events = get_events(size=25, offset = 0)
     data = {
-        'title' : 'BJJ test',
-        'header' : 'BJJ',
+        'title' : 'BJJ events - ALL',
+        'header' : 'BJJ events',
         "events" : events,
     }
     if request.get_cookie("adm"):

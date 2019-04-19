@@ -47,16 +47,16 @@
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Upcoming</a>
             <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
-              <a class="dropdown-item active" href="/">IBJJF<span class="sr-only">(current)</span></a>
+              <a class="dropdown-item" href="/">IBJJF</a>
               <a class="dropdown-item" href="/upcoming/uaejjf">UAEJJF</a>
             <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="/upcoming/all">ALL</a>
+              <a class="dropdown-item active" href="/upcoming/all">ALL<span class="sr-only">(current)</span></a>
             </div>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/random">Random</a>
           </li>
-          <li class="nav-item">
+          <li class="nav-item active">
             <a class="nav-link" href="/all">All</a>
           </li>
           %if user:
@@ -89,11 +89,6 @@
         <div class="card-body">
           <p class="card-text">{{item['location']}}</p>
         </div>
-        <div class="card-footer text-muted">
-          <p>
-          <img style="width: 48px; display: block;" src="data:image/jpg;base64, {{item['ranking']}}" alt="Ranking">
-          </p>            
-        </div>
       </div>
     % end
     </div>
@@ -101,9 +96,25 @@
 
   <footer class="mt-auto">
     <div class="container">
-      <p>BJJ events by <a href="mailto:zhzhussupovkz@gmail.com">@zhzhussupovkz</a></p>
+      <p>
+      <div class="float-left">BJJ events by <a href="mailto:zhzhussupovkz@gmail.com">@zhzhussupovkz</a></div>
+      <div class="float-right">
+        <a id="back-to-top" href="#" class="btn btn-primary btn-sm back-to-top" role="button">back to top</a>
+      </div></p>
     </div>
   </footer>
+  <script type="text/javascript">
+    $(document).ready(function(){
+        // scroll body to 0px on click
+        $('#back-to-top').click(function () {
+            $('#back-to-top').tooltip('hide');
+            $('body,html').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });  
+    });
+  </script>
 </body>
 </html>
 

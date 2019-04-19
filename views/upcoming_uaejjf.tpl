@@ -47,9 +47,9 @@
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Upcoming</a>
             <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
-              <a class="dropdown-item active" href="/">IBJJF<span class="sr-only">(current)</span></a>
-              <a class="dropdown-item" href="/upcoming/uaejjf">UAEJJF</a>
-            <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="/">IBJJF</a>
+              <a class="dropdown-item active" href="/upcoming/uaejjf">UAEJJF<span class="sr-only">(current)</span></a>
+              <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="/upcoming/all">ALL</a>
             </div>
           </li>
@@ -91,7 +91,7 @@
         </div>
         <div class="card-footer text-muted">
           <p>
-          <img style="width: 48px; display: block;" src="data:image/jpg;base64, {{item['ranking']}}" alt="Ranking">
+          <a href="{{item['register']}}">Register</a>
           </p>            
         </div>
       </div>
