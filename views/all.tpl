@@ -59,6 +59,9 @@
           <li class="nav-item active">
             <a class="nav-link" href="#">All<span class="sr-only">(current)</span></a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/kazakhstan_results">Results</a>
+          </li>
           %if user:
             <li class="nav-item">
               <a class="nav-link" href="/logout">Logout</a>

@@ -290,7 +290,7 @@ def get_events(size, offset):
 # get upcoming events from db (5 days)
 def get_upcoming_events():
     now = datetime.datetime.now()
-    end_date = now + datetime.timedelta(days=5)
+    end_date = now + datetime.timedelta(days=7)
     query = {
         "range" : {
             "date" : {
@@ -324,7 +324,7 @@ def get_upcoming_events():
 # get upcoming events from db (5 days)
 def uaejjf_get_upcoming_events():
     now = datetime.datetime.now()
-    end_date = now + datetime.timedelta(days=5)
+    end_date = now + datetime.timedelta(days=7)
     query = {
         "range" : {
             "date" : {

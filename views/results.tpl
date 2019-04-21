@@ -85,7 +85,7 @@
         <thead>
           <tr>
             <th scope="col">EVENT</th>
-            <th scope="col">RESUTLS</th>
+            <th scope="col">RESULTS</th>
             <th scope="col">COUNTRY</th>
           </tr>
         </thead>
