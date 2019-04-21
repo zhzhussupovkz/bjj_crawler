@@ -420,6 +420,7 @@ def uaejjf_event_by_id(event_id):
         "url" : item['_source']['url'],
         "name" : item['_source']['name'],
         "event_id" : item['_source']['event_id'],
+        "date" : item['_source']['date'],
         }
     return current
 
@@ -436,7 +437,7 @@ def uaejjf_event_result(event_id):
         tree = lxml.html.fromstring(event)
         token = tree.xpath(".//meta[contains(@name,'csrf')]/@content")
         event_name = tree.xpath(".//title")
-        event_name = event_name[0].text_content()
+        event_name = event_name[0].text_content().strip("\n").strip()
         token = token[0]
         data = {
             'competitorname' : '',
@@ -478,6 +479,8 @@ def uaejjf_event_result(event_id):
                     current['team'] = team[0].text_content().strip("\n") if team else ''
 
                     all_athletes.append(current)
+
+            all_athletes = list(filter(lambda a: a['name'] != '', all_athletes))
             info = {"event" : event_name, "athletes" : all_athletes}
             return info
     return []
@@ -488,6 +491,8 @@ def uaejjf_event_result(event_id):
 
 #events_to_db()
 
-#event = uaejjf_get_event("https://events.uaejjf.org/en/event/172")
+#event = uaejjf_get_event("https://events.uaejjf.org/en/event/108")
 #uaejjf_save(event)
-#print (get_event_by_id("6cd12d98dddba3e141dae9e54f35b4f2366353fcd655dff508d00fa27249f672"))
+
+#result = uaejjf_event_result("5")
+#print (result)

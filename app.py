@@ -147,7 +147,7 @@ def all():
 @route("/kazakhstan_results")
 @login_required
 def kazakhstan():
-    events = [uaejjf_event_by_id(i) for i in ["172", "187"]]
+    events = [uaejjf_event_by_id(i) for i in ["187", "172", "108", "5"]]
     data = {
         'title' : 'BJJ events - KAZAKHSTAN RESULTS',
         'header' : 'BJJ events',

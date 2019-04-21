@@ -85,6 +85,7 @@
         <thead>
           <tr>
             <th scope="col">EVENT</th>
+            <th scope="col">DATE</th>
             <th scope="col">RESULTS</th>
             <th scope="col">COUNTRY</th>
           </tr>
@@ -93,6 +94,11 @@
         % for event in events:
             <tr>
                 <td>{{event['name']}}</td>
+                <td>
+                % for d in event['date']:
+                    {{d}}<br>
+                % end
+                </td>
                 <td><a href="/kazakhstan_results/{{event['event_id']}}">GO!</a></td>
                 <td><img src="/static/css/blank.gif" class="flag flag-kz" alt="Kazakhstan" /></td>
             </tr>
