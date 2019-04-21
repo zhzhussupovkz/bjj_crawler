@@ -144,4 +144,38 @@ def all():
         redirect("/login")
     return template('views/all', data) 
 
+@route("/kazakhstan_results")
+@login_required
+def kazakhstan():
+    events = [uaejjf_event_by_id(i) for i in ["172", "187"]]
+    data = {
+        'title' : 'BJJ events - KAZAKHSTAN RESULTS',
+        'header' : 'BJJ events',
+        "events" : events,
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/results', data)
+
+# results KZ
+@route("/kazakhstan_results/<event_id>")
+@login_required
+def kazakhstan_results(event_id):
+    results = uaejjf_event_result(event_id)
+    data = {
+        'title' : 'BJJ events - KAZAKHSTAN RESULTS',
+        'header' : 'BJJ events',
+        "event" : results.get("event"),
+        "athletes" : results.get("athletes"),
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/results_athletes', data)
+
 run(host='10.10.1.143', port=58095, server='gunicorn', workers=4)

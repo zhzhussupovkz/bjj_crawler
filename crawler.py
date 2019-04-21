@@ -166,6 +166,7 @@ def uaejjf_get_event(link):
         event_info['entries'] = entries
 
         event_info["register_link"] = "{}/register".format(link.strip("/"))
+        event_info["event_id"] = link.split("/")[-1]
 
         return event_info
         
@@ -231,6 +232,7 @@ def uaejjf_save(event):
             "location" : event.get("location"),
             "info" : event.get("info"),
             "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
+            "event_id" : event.get("event_id"),
         }
         doc_id = hashlib.sha256((event["url"] + ",".join(doc.get("date"))).encode()).hexdigest()
         doc["id"] = doc_id
@@ -400,10 +402,92 @@ def get_event_by_id(event_id):
     }
     return current
 
+# get event by id
+def uaejjf_event_by_id(event_id):
+    query = {
+        "match" : {"event_id" : event_id}
+    }
+    sort = [
+        {
+          "date": {
+            "order": "asc"
+          }
+        }
+      ]
+    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 1, 'sort' : sort})
+    item =  res['hits']['hits'][0]
+    current = {
+        "url" : item['_source']['url'],
+        "name" : item['_source']['name'],
+        "event_id" : item['_source']['event_id'],
+        }
+    return current
+
+# get uaejjf event result KZ
+def uaejjf_event_result(event_id):
+    link = "https://events.uaejjf.org/en/event/{}/results".format(event_id)
+    s = requests.session()
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
+    }
+    r = s.get(url = link, headers = headers)
+    if r.ok:
+        event = r.text
+        tree = lxml.html.fromstring(event)
+        token = tree.xpath(".//meta[contains(@name,'csrf')]/@content")
+        event_name = tree.xpath(".//title")
+        event_name = event_name[0].text_content()
+        token = token[0]
+        data = {
+            'competitorname' : '',
+            'groupname' : '',
+            'academy' : '',
+            'team' : '',
+            'country' : 'KZ',
+            '_token' : token,
+        }
+        cookies = s.cookies.get_dict()
+        cookies = ';'.join("{!s}={!s}".format(key,val) for (key,val) in cookies.items())
+
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0',
+            'content-type' : 'application/x-www-form-urlencoded',
+            'cookie' : cookies,
+        }
+        r = s.post(url = link, data = data, headers = headers)
+        if r.ok:
+            result = r.text
+            tree = lxml.html.fromstring(result)
+            results = tree.xpath(".//div[contains(@id, 'results')]//div[contains(@class, 'result')]")
+            all_athletes = []
+            for item in results:
+                current = {}
+
+                division = item.xpath(".//h2")
+                current['division'] = division[0].text_content().strip("\n") if division else ''
+
+                athletes = item.xpath(".//div[contains(@class, 'well-inverted')]")
+                for a in athletes:            
+                    place = a.xpath(".//div[contains(@class, 'place ')]")
+                    current['place'] = place[0].text_content().strip("\n") if place else ''
+
+                    name = a.xpath(".//h3[contains(@class, 'name')]")
+                    current['name'] = name[0].text_content().strip("\n").replace("\n\n\n", " ") if name else ''
+
+                    team = a.xpath(".//span[contains(@class, 'club')]")
+                    current['team'] = team[0].text_content().strip("\n") if team else ''
+
+                    all_athletes.append(current)
+            info = {"event" : event_name, "athletes" : all_athletes}
+            return info
+    return []
+
 #c = uaejjf_get_calendar()
 #uaejjf_get_event(c[-14])
 #uaejjf_to_db()
 
 #events_to_db()
 
+#event = uaejjf_get_event("https://events.uaejjf.org/en/event/172")
+#uaejjf_save(event)
 #print (get_event_by_id("6cd12d98dddba3e141dae9e54f35b4f2366353fcd655dff508d00fa27249f672"))
