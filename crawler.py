@@ -287,7 +287,7 @@ def events_to_db():
 # crawling uaejjf events and save to db
 def uaejjf_to_db():
     events = uaejjf_get_calendar()
-    #events = uaejjf_past_events()
+    events = events + uaejjf_past_events()
     for i in events:
         try:
             event = uaejjf_get_event(i)
@@ -540,13 +540,15 @@ def uaejjf_event_result(event_id):
             results = tree.xpath(".//div[contains(@id, 'results')]//div[contains(@class, 'result')]")
             all_athletes = []
             for item in results:
-                current = {}
 
                 division = item.xpath(".//h2")
-                current['division'] = division[0].text_content().strip("\n") if division else ''
+                div = division[0].text_content().strip("\n") if division else ''
 
                 athletes = item.xpath(".//div[contains(@class, 'well-inverted')]")
                 for a in athletes:            
+                    current = {}
+                    current['division'] = div
+
                     place = a.xpath(".//div[contains(@class, 'place ')]")
                     current['place'] = place[0].text_content().strip("\n") if place else ''
 
@@ -558,7 +560,8 @@ def uaejjf_event_result(event_id):
 
                     all_athletes.append(current)
 
-            all_athletes = list(filter(lambda a: a['name'] != '', all_athletes))
+            all_athletes = list(filter(lambda a: "Kazakhstan" in a['name'], all_athletes))
+            
             info = {
                 "event" : event_name, 
                 "athletes" : all_athletes,
