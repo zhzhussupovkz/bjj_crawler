@@ -80,7 +80,18 @@
   <main role="main" class="flex-shrink-0">
     <div class="container">
       <div class="row">
-        <h1>{{event}} RESULTS</h1>
+        <h1>{{event}}</h1>
+        <ul class="list-group">
+            <li class="list-group-item d-flex">
+                <img src="/static/img/1_place.png" alt="total gold" /> {{gold}}
+            </li>
+            <li class="list-group-item d-flex">
+                <img src="/static/img/2_place.png" alt="total silver" /> {{silver}}
+            </li>
+            <li class="list-group-item d-flex">
+                <img src="/static/img/3_place.png" alt="total bronze" /> {{bronze}}
+            </li>
+        </ul>
         <table class="table table-hover">
         <thead>
           <tr>

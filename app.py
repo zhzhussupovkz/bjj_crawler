@@ -148,6 +148,7 @@ def all():
 @login_required
 def kazakhstan():
     events = [uaejjf_event_by_id(i) for i in ["187", "172", "108", "5"]]
+    #events = uaejjf_last_events()
     data = {
         'title' : 'BJJ events - KAZAKHSTAN RESULTS',
         'header' : 'BJJ events',
@@ -170,6 +171,9 @@ def kazakhstan_results(event_id):
         'header' : 'BJJ events',
         "event" : results.get("event"),
         "athletes" : results.get("athletes"),
+        "gold" : results.get("gold"),
+        "silver" : results.get("silver"),
+        "bronze" : results.get("bronze"),
     }
     if request.get_cookie("adm"):
         user = request.get_cookie("adm")

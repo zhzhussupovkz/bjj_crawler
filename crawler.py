@@ -50,6 +50,7 @@ def get_events_calendar():
 
 # get events uaejjf
 def uaejjf_get_calendar():
+    result = []
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
     }
@@ -58,10 +59,39 @@ def uaejjf_get_calendar():
     if r.ok:
         calendar = r.text
         tree = lxml.html.fromstring(calendar)
-        links = tree.xpath(".//section[contains(@id, 'upcoming')]//div[contains(@class, 'event-bg')]//div[contains(@class, 'content')]//a/@href")
-        links = list(filter(lambda i: "uaejjf.org" in i, links))
-        return links
+        events = tree.xpath(".//section[contains(@id, 'upcoming')]//div[contains(@class, 'event-bg')]//div[contains(@class, 'content')]")
+        for event in events:
+            link = event.xpath("..//a/@href")
+            link = link[0] if link and "uaejjf.org" in link[0] else ''
+            date = event.xpath(".//span[contains(@class, 'tag')]")
+            date = date[0].text_content().strip() if date else ''
+            result.append((link, date))
+        #links = list(filter(lambda i: "uaejjf.org" in i, links))
+        return result
     return []
+
+# get uaejjf past events
+def uaejjf_past_events():
+    result = []
+    headers = {
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
+    }
+    s = requests.session()
+    r = s.get(url = "https://events.uaejjf.org/en/federation/1/events", headers = headers)
+    if r.ok:
+        calendar = r.text
+        tree = lxml.html.fromstring(calendar)
+        events = tree.xpath(".//section[contains(@id, 'past-events')]//div[contains(@class, 'event-card')]//div[contains(@class, 'content')]")
+        for event in events:
+            link = event.xpath("..//a/@href")
+            link = link[0] if link and "uaejjf.org" in link[0] else ''
+            date = event.xpath(".//span[contains(@class, 'tag')]")
+            date = date[0].text_content().strip() if date else ''
+            result.append((link, date))
+        #links = list(filter(lambda i: "uaejjf.org" in i, links))
+        return result
+    return []
+    
 
 # parse current event by link
 def get_event_info(link):
@@ -119,7 +149,8 @@ def get_event_info(link):
     return {}
 
 # get uaejjf event info
-def uaejjf_get_event(link):
+def uaejjf_get_event(e):
+    link, date = e
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
     }
@@ -144,9 +175,11 @@ def uaejjf_get_event(link):
         name = tree.xpath(".//title")
         event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
         
-        date = tree.xpath(".//div[contains(@class, 'date event')]//strong")
-        year = datetime.datetime.now().year
-        df = ["{} {}".format(i.text_content().replace("\n","").strip(), year) for i in date]
+        #date = tree.xpath(".//div[contains(@class, 'date event')]//strong")
+        #year = datetime.datetime.now().year
+        #df = ["{} {}".format(i.text_content().replace("\n","").strip(), year) for i in date]
+
+        df = date.split("-")[:1]
         dates = [dateparser.parse(i) for i in df]
         dates = list(filter(None, dates))
         event_info['date'] = list(set(dates))
@@ -254,6 +287,7 @@ def events_to_db():
 # crawling uaejjf events and save to db
 def uaejjf_to_db():
     events = uaejjf_get_calendar()
+    #events = uaejjf_past_events()
     for i in events:
         try:
             event = uaejjf_get_event(i)
@@ -424,6 +458,39 @@ def uaejjf_event_by_id(event_id):
         }
     return current
 
+# get last uaejjf events
+def uaejjf_last_events():
+    now = datetime.datetime.now()
+    start_date = now - datetime.timedelta(days=30*6)
+    query = {
+        "range" : {
+            "date" : {
+                "gte" : start_date.strftime("%Y-%m-%d"),
+                "lte" : now.strftime("%Y-%m-%d"),
+                "boost" : 2.0
+        }
+      }
+    }
+    sort = [
+        {
+          "date": {
+            "order": "desc"
+          }
+        }
+      ]
+    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 25, 'from' : 0, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['name'],
+            "event_id" : item['_source']['event_id'],
+            }
+        fin.append(current)
+    return fin
+
+
 # get uaejjf event result KZ
 def uaejjf_event_result(event_id):
     link = "https://events.uaejjf.org/en/event/{}/results".format(event_id)
@@ -459,6 +526,17 @@ def uaejjf_event_result(event_id):
         if r.ok:
             result = r.text
             tree = lxml.html.fromstring(result)
+
+            gold_medals = tree.xpath(".//div[contains(@class, 'total-medals')]//div[contains(@class, '-gold')]//strong")
+            gold_medals = gold_medals[0].text_content().strip() if gold_medals else "0"
+
+
+            silver_medals = tree.xpath(".//div[contains(@class, 'total-medals')]//div[contains(@class, '-silver')]//strong")
+            silver_medals = silver_medals[0].text_content().strip() if silver_medals else "0"
+            
+            bronze_medals = tree.xpath(".//div[contains(@class, 'total-medals')]//div[contains(@class, '-bronze')]//strong")
+            bronze_medals = bronze_medals[0].text_content().strip() if bronze_medals else "0"
+
             results = tree.xpath(".//div[contains(@id, 'results')]//div[contains(@class, 'result')]")
             all_athletes = []
             for item in results:
@@ -481,17 +559,25 @@ def uaejjf_event_result(event_id):
                     all_athletes.append(current)
 
             all_athletes = list(filter(lambda a: a['name'] != '', all_athletes))
-            info = {"event" : event_name, "athletes" : all_athletes}
+            info = {
+                "event" : event_name, 
+                "athletes" : all_athletes,
+                "gold" : gold_medals,
+                "silver" : silver_medals,
+                "bronze" : bronze_medals,
+                }
             return info
     return []
 
-#c = uaejjf_get_calendar()
+#for i in uaejjf_past_events():
+#    print (i)
+
 #uaejjf_get_event(c[-14])
 #uaejjf_to_db()
 
 #events_to_db()
 
-#event = uaejjf_get_event("https://events.uaejjf.org/en/event/108")
+#event = uaejjf_get_event("https://events.uaejjf.org/en/event/172")
 #uaejjf_save(event)
 
 #result = uaejjf_event_result("5")
