@@ -147,7 +147,8 @@ def all():
 @route("/kazakhstan_results")
 @login_required
 def kazakhstan():
-    events = [uaejjf_event_by_id(i) for i in ["187", "181", "172", "121", "108", "89", "5"]]
+    e = ["187", "181", "172", "121", "108", "89", "44", "40", "11", "5"]
+    events = [uaejjf_event_by_id(i) for i in e]
     #events = uaejjf_last_events()
     data = {
         'title' : 'BJJ events - KAZAKHSTAN RESULTS',
@@ -182,4 +183,21 @@ def kazakhstan_results(event_id):
         redirect("/login")
     return template('views/results_athletes', data)
 
-run(host='10.10.1.143', port=58095, server='gunicorn', workers=4)
+# uaejjf profile info
+@route("/uaejjf/profile/<profile_id>")
+@login_required
+def uaejjf_profile(profile_id):
+    profile = uaejjf_parse_profile(profile_id)
+    data = {
+        'title' : 'BJJ events',
+        'header' : 'BJJ events',
+        "profile" : profile,
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/profile_uaejjf', data)
+
+run(host='10.10.1.143', port=58095, server='gunicorn', workers=8)

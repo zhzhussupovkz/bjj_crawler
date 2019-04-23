@@ -80,42 +80,40 @@
   <main role="main" class="flex-shrink-0">
     <div class="container">
       <div class="row">
-        <h1>{{event}}</h1>
-        <ul class="list-group">
-            <li class="list-group-item d-flex">
-                <img src="/static/img/1_place.png" alt="total gold" /> {{gold}}
-            </li>
-            <li class="list-group-item d-flex">
-                <img src="/static/img/2_place.png" alt="total silver" /> {{silver}}
-            </li>
-            <li class="list-group-item d-flex">
-                <img src="/static/img/3_place.png" alt="total bronze" /> {{bronze}}
-            </li>
-        </ul>
+        <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">{{profile['name']}}</h5>
+            </div>
+        </div>
+      </div>
+          
+    % for event in profile['event_matches']:
+        <div class="row">
         <table class="table table-hover">
         <thead>
           <tr>
-            <th scope="col">ATHLETE COUNTRY</th>
-            <td scope="col">TEAM</td>
-            <td scope="col">DIVISION</td>
-            <td scope="col">PLACE</td>
+            <th scope="col">Result</th>
+            <td scope="col">Competitor</td>
+            <td scope="col">Division</td>
+            <td scope="col">Event</td>
           </tr>
         </thead>
         <tbody>
-        % for a in athletes:
+        % for match in event['matches']:
             <tr>
-                % if a['profile_id']:
-                    <td>{{a['name']}} <a href = "/uaejjf/profile/{{a['profile_id']}}"> info </a></td>
-                % else:
-                    <td>{{a['name']}}</td>
-                % end
-                <td>{{a['team']}}</td>
-                <td>{{a['division']}}</td>
-                <td><img src="/static/img/{{a['place']}}_place.png" alt={{a['place']}} /></td>
+                <td>{{match['result']}}</td>
+                <td>{{match['competitor']}}</td>
+                <td>{{match['division']}}</td>
+                <td>{{event['event']['name']}}</td>
             </tr>
         % end
+        <tr><td colspan = "4"><center>PLACEMENT {{event['place']}}</td></center></tr>
         </tbody>
         </table>
+        </div>
+        <br/>
+    % end
+
       </div>
     </div>
   </main>

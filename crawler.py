@@ -166,19 +166,9 @@ def uaejjf_get_event(e):
         img = tree.xpath(".//div[contains(@class, 'cover-image')]//img/@src")
         event_info['img'] = img[0] if img else ""
 
-        #name = tree.xpath(".//div[contains(@class, 'cover-heading')]//h1")
-        #event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
-
-        #name_test = tree.xpath(".//div[contains(@class, 'container')]//h1")
-        #event_info['name'] = name_test[0].text_content().strip().replace("\n", "") if name_test else "not found"
-
         name = tree.xpath(".//title")
         event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
         
-        #date = tree.xpath(".//div[contains(@class, 'date event')]//strong")
-        #year = datetime.datetime.now().year
-        #df = ["{} {}".format(i.text_content().replace("\n","").strip(), year) for i in date]
-
         df = date.split("-")[:1]
         dates = [dateparser.parse(i) for i in df]
         dates = list(filter(None, dates))
@@ -254,7 +244,8 @@ def uaejjf_save(event):
         else:
             img = ""
     
-        doc = {   
+        doc = {
+            "id" : event.get("event_id"),   
             "url" : event.get("url"),
             "img" : img,
             "entries" : event.get("entries"),
@@ -267,8 +258,8 @@ def uaejjf_save(event):
             "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
             "event_id" : event.get("event_id"),
         }
-        doc_id = hashlib.sha256((event["url"] + ",".join(doc.get("date"))).encode()).hexdigest()
-        doc["id"] = doc_id
+        #doc_id = hashlib.sha256((event["url"] + ",".join(doc.get("date"))).encode()).hexdigest()
+        #doc["id"] = doc_id
         res = es.index(index = "uaejjf_test", doc_type = 'event', id = doc.get("id"), body = doc)
         logging.info(res)        
     except Exception as e:
@@ -438,23 +429,13 @@ def get_event_by_id(event_id):
 
 # get event by id
 def uaejjf_event_by_id(event_id):
-    query = {
-        "match" : {"event_id" : event_id}
-    }
-    sort = [
-        {
-          "date": {
-            "order": "asc"
-          }
-        }
-      ]
-    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 1, 'sort' : sort})
-    item =  res['hits']['hits'][0]
+    res = es.get(index = 'uaejjf_test', doc_type = 'event', id = event_id)
+    item =  res['_source']
     current = {
-        "url" : item['_source']['url'],
-        "name" : item['_source']['name'],
-        "event_id" : item['_source']['event_id'],
-        "date" : item['_source']['date'],
+        "url" : item['url'],
+        "name" : item['name'],
+        "event_id" : item['event_id'],
+        "date" : item['date'],
         }
     return current
 
@@ -555,6 +536,9 @@ def uaejjf_event_result(event_id):
                     name = a.xpath(".//h3[contains(@class, 'name')]")
                     current['name'] = name[0].text_content().strip("\n").replace("\n\n\n", " ") if name else ''
 
+                    profile_link = a.xpath(".//h3[contains(@class, 'name')]//a/@href")
+                    current['profile_id'] = profile_link[0].strip("/").split("/")[-1] if profile_link else ''
+
                     team = a.xpath(".//span[contains(@class, 'club')]")
                     current['team'] = team[0].text_content().strip("\n") if team else ''
 
@@ -572,6 +556,83 @@ def uaejjf_event_result(event_id):
             return info
     return []
 
+# get uaejjf profile info
+def uaejjf_parse_profile(profile_id):
+    link = "https://events.uaejjf.org/en/profile/{}".format(profile_id)
+    s = requests.session()
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
+    }
+    r = s.get(url = link, headers = headers)
+    if r.ok:
+        profile = r.text
+        
+        tree = lxml.html.fromstring(profile)
+        profile = {}
+
+        name = tree.xpath(".//div[contains(@class, 'user-info')]//h1")    
+        profile['name'] = name[0].text_content().strip() if name else ''
+
+        img = tree.xpath(".//img[contains(@class, 'image-user')]/@src")
+        profile['img'] = img[0] if img else ''
+
+        event_matches = tree.xpath(".//div[contains(@class, 'event')]//div[contains(@class, 'panel-matches')]")
+        events = []
+
+        for event in event_matches:   
+            matches = []
+
+            event_id = event.xpath(".//div[contains(@class, 'panel-heading')]//a/@href")
+            event_id = event_id[0].split("/bracket/")[0].strip().split("/")[-1] if event_id else None
+
+            bracket_id = event.xpath(".//div[contains(@class, 'panel-heading')]//a/@href")
+            bracket_id = bracket_id[0].strip().split("/")[-1] if bracket_id else None
+
+            division = event.xpath(".//h2[contains(@class, 'panel-title')]//span")
+            division = division[0].text_content() if division else ''
+
+            place = event.xpath(".//div[contains(@class, 'row')][last()]//div[contains(@class, 'md-7')]")
+            place = place[0].text_content().strip().replace("Placement ", "") if place else ''
+
+            matches_list = event.xpath(".//div[contains(@class, 'matches-list')]")
+
+            current_event = {
+                "event" : uaejjf_event_by_id(event_id),
+                "place" : place,
+            }
+
+            for m in matches_list:
+                result = m.xpath(".//div[contains(@class, 'md-2')]")
+                result = result[0].text_content().strip() if result else ''
+
+                competitor = m.xpath(".//div[contains(@class, 'md-6')]")
+                competitor = competitor[0].text_content().strip() if competitor else ''
+
+                match_info = m.xpath(".//div[contains(@class, 'md-4 muted')]")
+                match_info = match_info[0].text_content().strip() if match_info else ''
+            
+                match = {
+                    "division" : division, 
+                    "result" : result, 
+                    "competitor" : competitor,
+                    "info" : match_info,
+                    "bracket" : bracket_id,
+                }
+                matches.append(match)
+
+            current_event["matches"] = matches
+            events.append(current_event)
+
+        profile['event_matches'] = events
+
+        return profile
+    return {}           
+            
+
+#profile = uaejjf_parse_profile('16570')
+#for i,j in profile.items():
+#    print (i, j)
+
 #for i in uaejjf_past_events():
 #    print (i)
 
@@ -580,7 +641,7 @@ def uaejjf_event_result(event_id):
 
 #events_to_db()
 
-#event = uaejjf_get_event("https://events.uaejjf.org/en/event/172")
+#event = uaejjf_get_event(("https://events.uaejjf.org/en/event/5", "2017 May 20"))
 #uaejjf_save(event)
 
 #result = uaejjf_event_result("5")
