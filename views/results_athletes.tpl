@@ -114,6 +114,7 @@
                 <td><img src="/static/img/{{a['place']}}_place.png" alt={{a['place']}} /></td>
             </tr>
         % end
+        <tr><td colspan="4"><center>Last update: {{last_update}}</center></td></tr>
         </tbody>
         </table>
       </div>

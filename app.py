@@ -147,9 +147,10 @@ def all():
 @route("/kazakhstan_results")
 @login_required
 def kazakhstan():
-    e = ["187", "181", "172", "121", "108", "89", "44", "40", "11", "5"]
+    e = ["187", "181", "172", "164", "121", "108", "89", "44", "40", "30", "11", "5"]
     events = [uaejjf_event_by_id(i) for i in e]
     #events = uaejjf_last_events()
+    #events = uaejjf_get_events_kz()
     data = {
         'title' : 'BJJ events - KAZAKHSTAN RESULTS',
         'header' : 'BJJ events',
@@ -166,15 +167,17 @@ def kazakhstan():
 @route("/kazakhstan_results/<event_id>")
 @login_required
 def kazakhstan_results(event_id):
-    results = uaejjf_event_result(event_id)
+    #results = uaejjf_event_result(event_id)
+    results = uaejjf_get_results(event_id)
     data = {
-        'title' : 'BJJ events - KAZAKHSTAN RESULTS',
+        'title' : 'BJJ events - {}'.format(results.get("event")),
         'header' : 'BJJ events',
         "event" : results.get("event"),
         "athletes" : results.get("athletes"),
         "gold" : results.get("gold"),
         "silver" : results.get("silver"),
         "bronze" : results.get("bronze"),
+        "last_update" : results.get("created_at"),
     }
     if request.get_cookie("adm"):
         user = request.get_cookie("adm")
@@ -187,7 +190,8 @@ def kazakhstan_results(event_id):
 @route("/uaejjf/profile/<profile_id>")
 @login_required
 def uaejjf_profile(profile_id):
-    profile = uaejjf_parse_profile(profile_id)
+    #profile = uaejjf_parse_profile(profile_id)
+    profile = uaejjf_get_profile(profile_id)
     data = {
         'title' : 'BJJ events',
         'header' : 'BJJ events',

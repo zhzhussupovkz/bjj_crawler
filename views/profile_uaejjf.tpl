@@ -80,10 +80,16 @@
   <main role="main" class="flex-shrink-0">
     <div class="container">
       <div class="row">
-        <div class="card mb-3">
+        <div class="card mb-6">
             <div class="card-body">
               <h5 class="card-title">{{profile['name']}}</h5>
             </div>
+            <img style="width: 100%;" src="data:image/png;base64, {{profile['img']}}" alt={{profile['name']}}>
+            <ul class="list-group list-group-flush">
+            % for k, v in profile['info'].items():
+                <li class="list-group-item">{{k}} - {{v}}</li>
+            % end
+            </ul>
         </div>
       </div>
           
@@ -96,6 +102,7 @@
             <td scope="col">Competitor</td>
             <td scope="col">Division</td>
             <td scope="col">Event</td>
+            <td scope="col">Event Date</td>
           </tr>
         </thead>
         <tbody>
@@ -105,9 +112,14 @@
                 <td>{{match['competitor']}}</td>
                 <td>{{match['division']}}</td>
                 <td>{{event['event']['name']}}</td>
+                <td>
+                % for d in event['event']['date']:
+                    {{d}}<br>
+                % end
+                </td>
             </tr>
         % end
-        <tr><td colspan = "4"><center>PLACEMENT {{event['place']}}</td></center></tr>
+        <tr><td colspan = "5"><center>PLACEMENT {{event['place']}}</td></center></tr>
         </tbody>
         </table>
         </div>

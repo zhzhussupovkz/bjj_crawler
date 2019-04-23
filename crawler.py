@@ -511,7 +511,6 @@ def uaejjf_event_result(event_id):
             gold_medals = tree.xpath(".//div[contains(@class, 'total-medals')]//div[contains(@class, '-gold')]//strong")
             gold_medals = gold_medals[0].text_content().strip() if gold_medals else "0"
 
-
             silver_medals = tree.xpath(".//div[contains(@class, 'total-medals')]//div[contains(@class, '-silver')]//strong")
             silver_medals = silver_medals[0].text_content().strip() if silver_medals else "0"
             
@@ -568,13 +567,30 @@ def uaejjf_parse_profile(profile_id):
         profile = r.text
         
         tree = lxml.html.fromstring(profile)
-        profile = {}
+        profile = {
+            "id" : profile_id,
+            "url" : link,
+        }
 
         name = tree.xpath(".//div[contains(@class, 'user-info')]//h1")    
         profile['name'] = name[0].text_content().strip() if name else ''
 
         img = tree.xpath(".//img[contains(@class, 'image-user')]/@src")
         profile['img'] = img[0] if img else ''
+
+        details = tree.xpath(".//div[@class='user-details']//span[contains(@class, 'margin-horizontal-xs-16')]")
+        user_info = {}
+
+        for d in details:
+            key = d.xpath(".//small[contains(@class, 'mute')]")
+            key = key[0].text_content().strip().lower() if key else ''
+
+            val = d.xpath(".//span[contains(@class, 'details-data')]")
+            val = val[0].text_content().strip() if val else ''
+
+            user_info[key] = val
+
+        profile['info'] = user_info
 
         event_matches = tree.xpath(".//div[contains(@class, 'event')]//div[contains(@class, 'panel-matches')]")
         events = []
@@ -594,7 +610,7 @@ def uaejjf_parse_profile(profile_id):
             place = event.xpath(".//div[contains(@class, 'row')][last()]//div[contains(@class, 'md-7')]")
             place = place[0].text_content().strip().replace("Placement ", "") if place else ''
 
-            matches_list = event.xpath(".//div[contains(@class, 'matches-list')]")
+            matches_list = event.xpath(".//div[contains(@class, 'matches-list')]//div[contains(@class, 'row')]")
 
             current_event = {
                 "event" : uaejjf_event_by_id(event_id),
@@ -626,10 +642,108 @@ def uaejjf_parse_profile(profile_id):
         profile['event_matches'] = events
 
         return profile
-    return {}           
-            
+    return {}
 
+# uaejjf save profile
+def uaejjf_save_profile(profile):
+    try:
+        if not profile.get("img").startswith("https://events.uaejjf.org"):
+            profile['img'] = "https://events.uaejjf.org" + profile.get("img")
+        if profile.get("img").startswith("//events"):
+            profile['img'] = "https:" + profile.get("img")
+
+        # save image
+        r = requests.get(profile.get("img"))
+        if r.ok:
+            img = str(base64.b64encode(r.content).decode("utf-8"))
+        else:
+            img = ""
+
+        profile['img'] = img
+        profile['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
+        
+        res = es.index(index = "uaejjf_user", doc_type = 'profile', id = profile.get("id"), body = profile)
+        logging.info(res)        
+    except Exception as e:
+        logging.error(str(e)) 
+
+# uaejjf save event results
+def uaejjf_save_results(event_id):
+    try:
+        results = uaejjf_event_result(event_id)
+        results['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
+        
+        res = es.index(index = "uaejjf_results", doc_type = 'athletes_result', id = event_id, body = results)
+        logging.info(res)        
+    except Exception as e:
+        logging.error(str(e))
+
+# get uaejjf profile from db
+def uaejjf_get_profile(profile_id):
+    res = es.get(index = 'uaejjf_user', doc_type = 'profile', id = profile_id)
+    return res["_source"] if res else None
+
+# get uaejjf event result from db
+def uaejjf_get_results(event_id):
+    res = es.get(index = 'uaejjf_results', doc_type = 'athletes_result', id = event_id)
+    return res["_source"] if res else None
+
+# get uaejjf events with KZ results
+def uaejjf_get_events_kz():
+    query = {
+        "exists" : { "field" : "athletes" }
+    }
+    sort = [
+        {
+          "created_at": {
+            "order": "desc"
+          }
+        }
+      ]
+    res = es.search(index = 'uaejjf_results', body = {'query' : query, 'size' : 25, 'from' : 0, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = uaejjf_event_by_id(item["_id"])
+        fin.append(current)
+    return fin
+        
+
+# save profiles
+def uaejjf_save_profiles_kz():
+    query = {
+        "exists" : { "field" : "athletes" }
+    }
+    sort = [
+        {
+          "created_at": {
+            "order": "desc"
+          }
+        }
+      ]
+    profiles = set()
+    res = es.search(index = 'uaejjf_results', body = {'query' : query, 'size' : 50, 'from' : 0, 'sort' : sort})
+    for item in res['hits']['hits']:
+        athletes = item["_source"]["athletes"]
+        for a in athletes:
+            profiles.add(a.get("profile_id"))
+    
+    profiles = list(filter(None, list(profiles)))
+    for i in profiles:
+        profile = uaejjf_parse_profile(i)
+        uaejjf_save_profile(profile)
+
+#uaejjf_save_profiles_kz()
+
+#events = uaejjf_past_events()
+#for event in events:
+#    uaejjf_save_results(event[0].split("/")[-1])
+
+
+
+#uaejjf_save_results("187")
+#print (uaejjf_get_profile("16570"))
 #profile = uaejjf_parse_profile('16570')
+#uaejjf_save_profile(profile)
 #for i,j in profile.items():
 #    print (i, j)
 
@@ -646,3 +760,5 @@ def uaejjf_parse_profile(profile_id):
 
 #result = uaejjf_event_result("5")
 #print (result)
+
+#print (uaejjf_get_events_kz())
