@@ -8,6 +8,7 @@ import time, datetime
 import base64
 import random
 import dateparser
+import re
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s: %(levelname)s %(message)s')
 es = Elasticsearch(["192.168.0.19:11200", "192.168.0.2:11200", "192.168.0.5:11200"], maxsize=25)
@@ -61,7 +62,7 @@ def uaejjf_get_calendar():
         tree = lxml.html.fromstring(calendar)
         events = tree.xpath(".//section[contains(@id, 'upcoming')]//div[contains(@class, 'event-bg')]//div[contains(@class, 'content')]")
         for event in events:
-            link = event.xpath("..//a/@href")
+            link = event.xpath(".//a/@href")
             link = link[0] if link and "uaejjf.org" in link[0] else ''
             date = event.xpath(".//span[contains(@class, 'tag')]")
             date = date[0].text_content().strip() if date else ''
@@ -69,6 +70,25 @@ def uaejjf_get_calendar():
         #links = list(filter(lambda i: "uaejjf.org" in i, links))
         return result
     return []
+
+# smoothcomp get events
+def smoothcomp_events():
+    result = []
+    headers = {
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
+    }
+    s = requests.session()
+    r = s.get(url = "https://smoothcomp.com/en/events/upcoming", headers = headers)
+    if r.ok:
+        calendar = r.text
+        events = re.search("var events(.*)", calendar)
+        if events:
+            events = events.group(1).strip().strip("=").strip()
+            events_list = json.loads(events)
+
+            for event in events_list:
+                result.append((event.get("url"), event.get("eventPeriod")))
+    return result
 
 # get uaejjf past events
 def uaejjf_past_events():
@@ -578,6 +598,10 @@ def uaejjf_parse_profile(profile_id):
         img = tree.xpath(".//img[contains(@class, 'image-user')]/@src")
         profile['img'] = img[0] if img else ''
 
+        img_default = tree.xpath(".//img[contains(@class, 'Federation logo')]/@src")
+        if not profile.get("img"):
+            profile['img'] = img_default[0]
+
         details = tree.xpath(".//div[@class='user-details']//span[contains(@class, 'margin-horizontal-xs-16')]")
         user_info = {}
 
@@ -647,17 +671,22 @@ def uaejjf_parse_profile(profile_id):
 # uaejjf save profile
 def uaejjf_save_profile(profile):
     try:
-        if not profile.get("img").startswith("https://events.uaejjf.org"):
-            profile['img'] = "https://events.uaejjf.org" + profile.get("img")
-        if profile.get("img").startswith("//events"):
-            profile['img'] = "https:" + profile.get("img")
-
-        # save image
-        r = requests.get(profile.get("img"))
-        if r.ok:
-            img = str(base64.b64encode(r.content).decode("utf-8"))
+        if profile.get("img"):
+            if not profile.get("img").startswith("https://events.uaejjf.org"):
+                profile['img'] = "https://events.uaejjf.org" + profile.get("img")
+            if profile.get("img").startswith("//events"):
+                profile['img'] = "https:" + profile.get("img")
+    
+            # save image
+            r = requests.get(profile.get("img"))
+            if r.ok:
+                img = str(base64.b64encode(r.content).decode("utf-8"))
+            else:
+                f = open("./static/img/user.png", "rb")
+                img = str(base64.b64encode(f.read()))
         else:
-            img = ""
+            f = open("./static/img/user.png", "rb")
+            img = base64.b64encode(f.read())
 
         profile['img'] = img
         profile['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -672,6 +701,11 @@ def uaejjf_save_results(event_id):
     try:
         results = uaejjf_event_result(event_id)
         results['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        if results.get("athletes"):
+            for i in results.get("athletes"):
+                profile = uaejjf_parse_profile(i.get("profile_id"))
+                uaejjf_save_profile(profile)
         
         res = es.index(index = "uaejjf_results", doc_type = 'athletes_result', id = event_id, body = results)
         logging.info(res)        
@@ -732,6 +766,10 @@ def uaejjf_save_profiles_kz():
         profile = uaejjf_parse_profile(i)
         uaejjf_save_profile(profile)
 
+#print (smoothcomp_events())
+
+
+
 #uaejjf_save_profiles_kz()
 
 #events = uaejjf_past_events()
@@ -740,9 +778,9 @@ def uaejjf_save_profiles_kz():
 
 
 
-#uaejjf_save_results("187")
+#uaejjf_save_results("183")
 #print (uaejjf_get_profile("16570"))
-#profile = uaejjf_parse_profile('16570')
+#profile = uaejjf_parse_profile('49286')
 #uaejjf_save_profile(profile)
 #for i,j in profile.items():
 #    print (i, j)
@@ -755,7 +793,7 @@ def uaejjf_save_profiles_kz():
 
 #events_to_db()
 
-#event = uaejjf_get_event(("https://events.uaejjf.org/en/event/5", "2017 May 20"))
+#event = uaejjf_get_event(("https://events.uaejjf.org/en/event/183", "2019 April 24"))
 #uaejjf_save(event)
 
 #result = uaejjf_event_result("5")

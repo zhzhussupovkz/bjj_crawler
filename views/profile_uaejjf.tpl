@@ -84,7 +84,7 @@
             <div class="card-body">
               <h5 class="card-title">{{profile['name']}}</h5>
             </div>
-            <img style="width: 100%;" src="data:image/png;base64, {{profile['img']}}" alt={{profile['name']}}>
+            <center><img style="width: 128px;" src="data:image/png;base64, {{profile['img']}}" alt={{profile['name']}}></center>
             <ul class="list-group list-group-flush">
             % for k, v in profile['info'].items():
                 <li class="list-group-item">{{k}} - {{v}}</li>
