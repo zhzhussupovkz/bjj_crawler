@@ -57,21 +57,21 @@ def logout():
     return redirect('/login')
 
 # upcoming events by current date
-@route('/')
-@login_required
-def index():
-    events = get_upcoming_events()
-    data = {
-        'title' : 'BJJ events - UPCOMING IBJJF',
-        'header' : 'BJJ events',
-        "events" : events,
-    }
-    if request.get_cookie("adm"):
-        user = request.get_cookie("adm")
-        data['user'] = user
-    else:
-        redirect("/login")
-    return template('views/upcoming', data)
+#@route('/')
+#@login_required
+#def index():
+#    events = get_upcoming_events()
+#    data = {
+#        'title' : 'BJJ events - UPCOMING IBJJF',
+#        'header' : 'BJJ events',
+#        "events" : events,
+#    }
+#    if request.get_cookie("adm"):
+#        user = request.get_cookie("adm")
+#        data['user'] = user
+#    else:
+#        redirect("/login")
+#    return template('views/upcoming', data)
 
 # upcoming uaejjf events by current date
 @route('/upcoming/uaejjf')
@@ -89,6 +89,24 @@ def upcoming_uaejjf():
     else:
         redirect("/login")
     return template('views/upcoming_uaejjf', data)
+
+# upcoming smoothcomp events by current date
+#@route('/upcoming/smoothcomp')
+@route('/')
+@login_required
+def upcoming_smoothcomp():
+    events = smoothcomp_get_upcoming_events()
+    data = {
+        'title' : 'BJJ events - UPCOMING SMOOTHCOMP',
+        'header' : 'BJJ events',
+        "events" : events,
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/upcoming_smoothcomp', data)
 
 # upcoming all events by current date
 @route('/upcoming/all')

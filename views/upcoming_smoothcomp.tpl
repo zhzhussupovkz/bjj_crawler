@@ -10,7 +10,6 @@
 
     <!-- Bootstrap core CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/css/flags.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
@@ -48,7 +47,7 @@
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Upcoming</a>
             <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
-              <a class="dropdown-item" href="/">Smoothcomp</a>
+              <a class="dropdown-item active" href="/">Smoothcomp<span class="sr-only">(current)</span></a>
               <a class="dropdown-item" href="/upcoming/uaejjf">UAEJJF</a>
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="/upcoming/all">ALL</a>
@@ -60,8 +59,8 @@
           <li class="nav-item">
             <a class="nav-link" href="/all">All</a>
           </li> -->
-          <li class="nav-item active">
-            <a class="nav-link" href="/kazakhstan_results">Results<span class="sr-only">(current)</span></a>
+          <li class="nav-item">
+            <a class="nav-link" href="/kazakhstan_results">Results</a>
           </li>
           %if user:
             <li class="nav-item">
@@ -79,45 +78,27 @@
 
   <main role="main" class="flex-shrink-0">
     <div class="container">
-      <div class="row">
-        <h1>{{event}}</h1>
-        <ul class="list-group">
-            <li class="list-group-item d-flex">
-                <img src="/static/img/1_place.png" alt="total gold" /> {{gold}}
-            </li>
-            <li class="list-group-item d-flex">
-                <img src="/static/img/2_place.png" alt="total silver" /> {{silver}}
-            </li>
-            <li class="list-group-item d-flex">
-                <img src="/static/img/3_place.png" alt="total bronze" /> {{bronze}}
-            </li>
-        </ul>
-        <table class="table table-hover">
-        <thead>
-          <tr>
-            <th scope="col">ATHLETE COUNTRY</th>
-            <td scope="col">TEAM</td>
-            <td scope="col">DIVISION</td>
-            <td scope="col">PLACE</td>
-          </tr>
-        </thead>
-        <tbody>
-        % for a in athletes:
-            <tr>
-                % if a['profile_id']:
-                    <td>{{a['name']}} <a href = "/uaejjf/profile/{{a['profile_id']}}"> info </a></td>
-                % else:
-                    <td>{{a['name']}}</td>
-                % end
-                <td>{{a['team']}}</td>
-                <td>{{a['division']}}</td>
-                <td><img src="/static/img/{{a['place']}}_place.png" alt={{a['place']}} /></td>
-            </tr>
-        % end
-        <tr><td colspan="4"><center>Last update: {{last_update}}</center></td></tr>
-        </tbody>
-        </table>
+    % for item in events:
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">{{item['name']}}</h5>
+          <h6 class="card-subtitle text-muted">
+              % for d in item['date']:
+                  {{d}}<br>
+              % end
+          </h6>
+        </div>
+        <img style="width: 100%; display: block;" src="data:image/jpg;base64, {{item['img']}}" alt={{item['name']}}>
+        <div class="card-body">
+          <p class="card-text">{{item['location']}}</p>
+        </div>
+        <div class="card-footer text-muted">
+          <p>
+          <a href="{{item['register']}}">Register</a>
+          </p>            
+        </div>
       </div>
+    % end
     </div>
   </main>
 

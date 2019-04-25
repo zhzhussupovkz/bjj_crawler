@@ -72,13 +72,13 @@ def uaejjf_get_calendar():
     return []
 
 # smoothcomp get events
-def smoothcomp_events():
+def smoothcomp_events(period = "upcoming"):
     result = []
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
     }
     s = requests.session()
-    r = s.get(url = "https://smoothcomp.com/en/events/upcoming", headers = headers)
+    r = s.get(url = "https://smoothcomp.com/en/events/{}".format(period), headers = headers)
     if r.ok:
         calendar = r.text
         events = re.search("var events(.*)", calendar)
@@ -214,6 +214,54 @@ def uaejjf_get_event(e):
         return event_info
         
     return {}
+
+# get smoothcomp event info
+def smoothcomp_get_event(e):
+    link, date = e
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
+    }
+    r = requests.get(url = link, headers = headers)
+    if r.ok:
+        event_info = {}
+
+        event = r.text
+        tree = lxml.html.fromstring(event)
+
+        event_info['url'] = link
+
+        img = tree.xpath(".//div[contains(@class, 'cover-image')]//img/@src")
+        event_info['img'] = img[0] if img else ""
+
+        name = tree.xpath(".//title")
+        event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
+        
+        df = date.split("-")[:1]
+        dates = [dateparser.parse(i) for i in df]
+        dates = list(filter(None, dates))
+        event_info['date'] = list(set(dates))
+
+        location = tree.xpath(".//div[contains(@class, 'location')]")
+        event_info['location'] = location[0].text_content().strip() if location else "not found"
+
+        info = tree.xpath(".//div[contains(@class, 'information')]")
+        info = [i.text_content().strip().replace("\t", " ").replace("\n", " ").replace("\r", " ") for i in info] if info else []
+        event_info["info"] = list(filter(None, info))
+
+        entries = tree.xpath(".//div[contains(@class, 'panel-inverted')]//ul")
+        entries = entries[-1].xpath(".//li")
+        entries = [i.text_content().strip().replace("\n", " ") for i in entries] if entries else []
+        event_info['entries'] = entries
+
+        event_info["register_link"] = "{}/register".format(link.strip("/"))
+        event_info["event_id"] = link.split("/")[-1]
+
+        copyright = tree.xpath(".//div[contains(@class, 'footer')]//div")
+        event_info['copyright'] = copyright[0].text_content().strip().replace("\n", "") if copyright else ""
+
+        return event_info
+        
+    return {}
     
 # save event to db
 def save_to_db(event):
@@ -285,6 +333,44 @@ def uaejjf_save(event):
     except Exception as e:
         logging.error(str(e))
 
+# smoothcomp save
+def smoothcomp_save(event):
+    try:
+        if not event.get("img").startswith("https://smoothcomp.com"):
+            event['img'] = "https://smoothcomp.com" + event.get("img")
+        if event.get("img").startswith("//smoothcomp.com"):
+            event['img'] = "https:" + event.get("img")
+
+        # save image
+        r = requests.get(event.get("img"))
+        if r.ok:
+            img = str(base64.b64encode(r.content).decode("utf-8"))
+        else:
+            img = ""
+    
+        doc = {
+            "id" : event.get("event_id"),
+            "url" : event.get("url"),
+            "img" : img,
+            "entries" : event.get("entries"),
+            "name" : event.get("name"),
+            #"date" : [int(i.timestamp()) for i in event.get("date")], #[i.strftime("%Y-%m-%d") for i in event.get("date")],
+            "date" : [i.strftime("%Y-%m-%d") for i in event.get("date")],
+            "copyright" : event.get("copyright"),
+            "register_link" : event.get("register_link"),
+            "location" : event.get("location"),
+            "info" : event.get("info"),
+            "created_at" : datetime.datetime.now().strftime("%Y-%m-%d"),
+            "event_id" : event.get("event_id"),
+        }
+        #doc_id = hashlib.sha256((event["url"] + ",".join(doc.get("date"))).encode()).hexdigest()
+        #doc["id"] = doc_id
+        res = es.index(index = "smoothcomp_events", doc_type = 'event', id = doc.get("id"), body = doc)
+        logging.info(res)        
+    except Exception as e:
+        logging.error(str(e))
+
+
 # crawling events and save to db
 def events_to_db():
     events = get_events_calendar()
@@ -303,6 +389,17 @@ def uaejjf_to_db():
         try:
             event = uaejjf_get_event(i)
             uaejjf_save(event)
+        except Exception as e:
+            logging.error(str(e))
+
+# crawling smoothcomp events and save to db
+def smoothcomp_to_db():
+    events = smoothcomp_events("upcoming")
+    events = events + smoothcomp_events("past")
+    for i in events:
+        try:
+            event = smoothcomp_get_event(i)
+            smoothcomp_save(event)
         except Exception as e:
             logging.error(str(e))
 
@@ -334,13 +431,15 @@ def get_events(size, offset):
 
 # get upcoming events from db (5 days)
 def get_upcoming_events():
-    now = datetime.datetime.now()
-    end_date = now + datetime.timedelta(days=7)
+    #now = datetime.datetime.now()
+    #end_date = now + datetime.timedelta(days=7)
     query = {
         "range" : {
             "date" : {
-                "gte" : now.strftime("%Y-%m-%d"),
-                "lte" : end_date.strftime("%Y-%m-%d"),
+                #"gte" : now.strftime("%Y-%m-%d"),
+                #"lte" : end_date.strftime("%Y-%m-%d"),
+                "gte" : "now",
+                "lte" :  "now+2w",
                 "boost" : 2.0
         }
       }
@@ -352,7 +451,7 @@ def get_upcoming_events():
           }
         }
       ]
-    res = es.search(index = 'bjj_test', body = {'query' : query, 'size' : 5}) #, 'sort' : sort})
+    res = es.search(index = 'bjj_test', body = {'query' : query, 'size' : 5, 'sort' : sort})
     fin = []
     for item in res['hits']['hits']:
         current = {
@@ -366,15 +465,17 @@ def get_upcoming_events():
         fin.append(current)
     return fin
 
-# get upcoming events from db (5 days)
+# get upcoming events from db uaejjf (1 month)
 def uaejjf_get_upcoming_events():
-    now = datetime.datetime.now()
-    end_date = now + datetime.timedelta(days=7)
+    #now = datetime.datetime.now()
+    #end_date = now + datetime.timedelta(days=7)
     query = {
         "range" : {
             "date" : {
-                "gte" : now.strftime("%Y-%m-%d"),
-                "lte" : end_date.strftime("%Y-%m-%d"),
+                #"gte" : now.strftime("%Y-%m-%d"),
+                #"lte" : end_date.strftime("%Y-%m-%d"),
+                "gte" : "now",
+                "lte" :  "now+1M",
                 "boost" : 2.0
         }
       }
@@ -386,7 +487,7 @@ def uaejjf_get_upcoming_events():
           }
         }
       ]
-    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 5}) #, 'sort' : sort})
+    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 5, 'sort' : sort})
     fin = []
     for item in res['hits']['hits']:
         current = {
@@ -400,15 +501,13 @@ def uaejjf_get_upcoming_events():
         fin.append(current)
     return fin
 
-# get all upcoming events
-def get_upcoming_all():
-    now = datetime.datetime.now()
-    end_date = now + datetime.timedelta(days=7)
+# get upcoming events from db smoothcomp
+def smoothcomp_get_upcoming_events():
     query = {
         "range" : {
             "date" : {
-                "gte" : now.strftime("%Y-%m-%d"),
-                "lte" : end_date.strftime("%Y-%m-%d"),
+                "gte" : "now",
+                "lte" :  "now+1w",
                 "boost" : 2.0
         }
       }
@@ -420,7 +519,7 @@ def get_upcoming_all():
           }
         }
       ]
-    res = es.search(index = 'bjj_test,uaejjf_test', body = {'query' : query, 'size' : 5}) #, 'sort' : sort})
+    res = es.search(index = 'smoothcomp_events', body = {'query' : query, 'size' : 10, 'sort' : sort})
     fin = []
     for item in res['hits']['hits']:
         current = {
@@ -429,6 +528,42 @@ def get_upcoming_all():
             "name" : item['_source']['name'],
             "location" : item['_source']['location'],
             "img" : item['_source']['img'],
+            "register" : item['_source']['register_link'],
+            }
+        fin.append(current)
+    return fin
+
+
+# get all upcoming events
+def get_upcoming_all():
+    #now = datetime.datetime.now()
+    #end_date = now + datetime.timedelta(days=7)
+    query = {
+        "range" : {
+            "date" : {
+                "gte" : "now",
+                "lte" :  "now+1M",
+                "boost" : 2.0
+        }
+      }
+    }
+    sort = [
+        {
+          "date": {
+            "order": "asc"
+          }
+        }
+      ]
+    res = es.search(index = 'smoothcomp_events,uaejjf_test', body = {'query' : query, 'size' : 25, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['name'],
+            "location" : item['_source']['location'],
+            "img" : item['_source']['img'],
+            #"register" : item['_source']['register_link'],
             }
         fin.append(current)
     return fin
@@ -447,17 +582,37 @@ def get_event_by_id(event_id):
     }
     return current
 
-# get event by id
+# get event by id uaejjf
 def uaejjf_event_by_id(event_id):
-    res = es.get(index = 'uaejjf_test', doc_type = 'event', id = event_id)
-    item =  res['_source']
-    current = {
-        "url" : item['url'],
-        "name" : item['name'],
-        "event_id" : item['event_id'],
-        "date" : item['date'],
-        }
-    return current
+    try:
+        res = es.get(index = 'uaejjf_test', doc_type = 'event', id = event_id)
+        item =  res['_source']
+        current = {
+            "url" : item['url'],
+            "name" : item['name'],
+            "event_id" : item['event_id'],
+            "date" : item['date'],
+            }
+        return current
+    except Exception as e:
+        logging.error(str(e))
+    return {}
+
+# get event by id smoothcomp
+def smoothcomp_event_by_id(event_id):
+    try:
+        res = es.get(index = 'smoothcomp_events', doc_type = 'event', id = event_id)
+        item =  res['_source']
+        current = {
+            "url" : item['url'],
+            "name" : item['name'],
+            "event_id" : item['event_id'],
+            "date" : item['date'],
+            }
+        return current
+    except Exception as e:
+        logging.error(str(e))
+    return {}
 
 # get last uaejjf events
 def uaejjf_last_events():
@@ -493,8 +648,12 @@ def uaejjf_last_events():
 
 
 # get uaejjf event result KZ
-def uaejjf_event_result(event_id):
-    link = "https://events.uaejjf.org/en/event/{}/results".format(event_id)
+def uaejjf_event_result(event_id = None, source = 'uaejjf'):
+    if source == 'uaejjf':
+        link = "https://events.uaejjf.org/en/event/{}/results".format(event_id)
+    else:
+        link = "https://smoothcomp.com/en/event/{}/results".format(event_id)
+
     s = requests.session()
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
@@ -576,8 +735,11 @@ def uaejjf_event_result(event_id):
     return []
 
 # get uaejjf profile info
-def uaejjf_parse_profile(profile_id):
-    link = "https://events.uaejjf.org/en/profile/{}".format(profile_id)
+def uaejjf_parse_profile(profile_id = None, resource = 'uaejjf'):
+    if resource == 'uaejjf':
+        link = "https://events.uaejjf.org/en/profile/{}".format(profile_id)
+    else:
+        link = "https://smoothcomp.com/en/profile/{}".format(profile_id)
     s = requests.session()
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
@@ -637,7 +799,7 @@ def uaejjf_parse_profile(profile_id):
             matches_list = event.xpath(".//div[contains(@class, 'matches-list')]//div[contains(@class, 'row')]")
 
             current_event = {
-                "event" : uaejjf_event_by_id(event_id),
+                "event" : uaejjf_event_by_id(event_id) if resource == "uaejjf" else smoothcomp_event_by_id(event_id),
                 "place" : place,
             }
 
@@ -766,8 +928,14 @@ def uaejjf_save_profiles_kz():
         profile = uaejjf_parse_profile(i)
         uaejjf_save_profile(profile)
 
-#print (smoothcomp_events())
+#print (smoothcomp_event_result("1004"))
 
+#events = smoothcomp_events()
+#event = smoothcomp_get_event(events[30])
+#for i, j in event.items():
+#    print (i, j)
+
+#smoothcomp_to_db()
 
 
 #uaejjf_save_profiles_kz()
@@ -780,7 +948,9 @@ def uaejjf_save_profiles_kz():
 
 #uaejjf_save_results("183")
 #print (uaejjf_get_profile("16570"))
-#profile = uaejjf_parse_profile('49286')
+
+#profile = uaejjf_parse_profile(profile_id = '68124', resource = 'smoothcomp')
+
 #uaejjf_save_profile(profile)
 #for i,j in profile.items():
 #    print (i, j)
