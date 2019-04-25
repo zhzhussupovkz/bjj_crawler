@@ -54,15 +54,20 @@
               <a class="dropdown-item" href="/upcoming/all">ALL</a>
             </div>
           </li>
-          <!-- <li class="nav-item">
-            <a class="nav-link" href="/random">Random</a>
+
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Results</a>
+              <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
+              % if menu == "uaejjf":
+                    <a class="dropdown-item active" href="/kazakhstan_results/uaejjf">UAEJJF<span class="sr-only">(current)</span></a>
+                    <a class="dropdown-item" href="/kazakhstan_results/smoothcomp">Smoothcomp</a>
+              % else:
+                  <a class="dropdown-item" href="/kazakhstan_results/uaejjf">UAEJJF</a>
+                  <a class="dropdown-item active" href="/kazakhstan_results/smoothcomp">Smoothcomp<span class="sr-only">(current)</span></a>                       
+              % end
+              </div>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/all">All</a>
-          </li> -->
-          <li class="nav-item active">
-            <a class="nav-link" href="/kazakhstan_results">Results<span class="sr-only">(current)</span></a>
-          </li>
+
           %if user:
             <li class="nav-item">
               <a class="nav-link" href="/logout">Logout</a>
@@ -89,6 +94,17 @@
             % for k, v in profile['info'].items():
                 <li class="list-group-item">{{k}} - {{v}}</li>
             % end
+            </ul>
+            <ul class="list-group">
+                <li class="list-group-item d-flex">
+                    <img src="/static/img/1_place.png" alt="total gold" /> {{profile['medals']['gold']}}
+                </li>
+                <li class="list-group-item d-flex">
+                    <img src="/static/img/2_place.png" alt="total silver" /> {{profile['medals']['silver']}}
+                </li>
+                <li class="list-group-item d-flex">
+                    <img src="/static/img/3_place.png" alt="total bronze" /> {{profile['medals']['bronze']}}
+                </li>
             </ul>
         </div>
       </div>

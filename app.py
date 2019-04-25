@@ -162,7 +162,7 @@ def all():
         redirect("/login")
     return template('views/all', data) 
 
-@route("/kazakhstan_results")
+@route("/kazakhstan_results/uaejjf")
 @login_required
 def kazakhstan():
     e = ["183", "187", "181", "172", "164", "121", "108", "89", "44", "40", "30", "11", "5"]
@@ -170,7 +170,7 @@ def kazakhstan():
     #events = uaejjf_last_events()
     #events = uaejjf_get_events_kz()
     data = {
-        'title' : 'BJJ events - KAZAKHSTAN RESULTS',
+        'title' : 'BJJ events - KAZAKHSTAN RESULTS - UAEJJF',
         'header' : 'BJJ events',
         "events" : events,
     }
@@ -181,7 +181,25 @@ def kazakhstan():
         redirect("/login")
     return template('views/results', data)
 
-# results KZ
+@route("/kazakhstan_results/smoothcomp")
+@login_required
+def kazakhstan_smoothcomp():
+    e = ["1851", "1757", "1195", "1175", "1152", "1176", "1301", "1005", "1004"]
+    events = [smoothcomp_event_by_id(i) for i in e]
+    data = {
+        'title' : 'BJJ events - KAZAKHSTAN RESULTS - Smoothcomp',
+        'header' : 'BJJ events',
+        "events" : events,
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/results_smoothcomp', data)
+
+
+# results KZ UAEJJF
 @route("/kazakhstan_results/<event_id>")
 @login_required
 def kazakhstan_results(event_id):
@@ -196,6 +214,30 @@ def kazakhstan_results(event_id):
         "silver" : results.get("silver"),
         "bronze" : results.get("bronze"),
         "last_update" : results.get("created_at"),
+        "menu" : "uaejjf",
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/results_athletes', data)
+
+# results KZ UAEJJF
+@route("/kazakhstan_results/smoothcomp/<event_id>")
+@login_required
+def kazakhstan_results_smoothcomp(event_id):
+    results = smoothcomp_get_results(event_id)
+    data = {
+        'title' : 'BJJ events - {}'.format(results.get("event")),
+        'header' : 'BJJ events',
+        "event" : results.get("event"),
+        "athletes" : results.get("athletes"),
+        "gold" : results.get("gold"),
+        "silver" : results.get("silver"),
+        "bronze" : results.get("bronze"),
+        "last_update" : results.get("created_at"),
+        "menu" : "smoothcomp",
     }
     if request.get_cookie("adm"):
         user = request.get_cookie("adm")
@@ -211,9 +253,10 @@ def uaejjf_profile(profile_id):
     #profile = uaejjf_parse_profile(profile_id)
     profile = uaejjf_get_profile(profile_id)
     data = {
-        'title' : 'BJJ events',
+        'title' : 'BJJ events - {}'.format(profile.get("name")),
         'header' : 'BJJ events',
         "profile" : profile,
+        "menu" : "uaejjf",
     }
     if request.get_cookie("adm"):
         user = request.get_cookie("adm")
@@ -221,5 +264,24 @@ def uaejjf_profile(profile_id):
     else:
         redirect("/login")
     return template('views/profile_uaejjf', data)
+
+# smoothcomp profile info
+@route("/smoothcomp/profile/<profile_id>")
+@login_required
+def smoothcomp_profile(profile_id):
+    profile = smoothcomp_get_profile(profile_id)
+    data = {
+        'title' : 'BJJ events - {}'.format(profile.get("name")),
+        'header' : 'BJJ events',
+        "profile" : profile,
+        "menu" : "smoothcomp",
+    }
+    if request.get_cookie("adm"):
+        user = request.get_cookie("adm")
+        data['user'] = user
+    else:
+        redirect("/login")
+    return template('views/profile_uaejjf', data)
+
 
 run(host='10.10.1.143', port=58095, server='gunicorn', workers=8)

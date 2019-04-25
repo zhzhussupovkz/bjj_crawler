@@ -55,17 +55,12 @@
             </div>
           </li>
           <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Results</a>
-                <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
-                % if menu == "uaejjf":
-                      <a class="dropdown-item active" href="/kazakhstan_results/uaejjf">UAEJJF<span class="sr-only">(current)</span></a>
-                      <a class="dropdown-item" href="/kazakhstan_results/smoothcomp">Smoothcomp</a>
-                % else:
-                    <a class="dropdown-item" href="/kazakhstan_results/uaejjf">UAEJJF</a>
-                    <a class="dropdown-item active" href="/kazakhstan_results/smoothcomp">Smoothcomp<span class="sr-only">(current)</span></a>                       
-                % end
-                </div>
-            </li>
+            <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Results</a>
+              <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
+                <a class="dropdown-item" href="/kazakhstan_results/uaejjf">UAEJJF</a>
+                <a class="dropdown-item active" href="/kazakhstan_results/smoothcomp">Smoothcomp<span class="sr-only">(current)</span></a>
+              </div>
+          </li>
           %if user:
             <li class="nav-item">
               <a class="nav-link" href="/logout">Logout</a>
@@ -83,50 +78,29 @@
   <main role="main" class="flex-shrink-0">
     <div class="container">
       <div class="row">
-        <h1>{{event}}</h1>
-      </div>
-      <div class="row">
-        <ul class="list-group">
-            <li class="list-group-item d-flex">
-                <img src="/static/img/1_place.png" alt="total gold" /> {{gold}}
-            </li>
-            <li class="list-group-item d-flex">
-                <img src="/static/img/2_place.png" alt="total silver" /> {{silver}}
-            </li>
-            <li class="list-group-item d-flex">
-                <img src="/static/img/3_place.png" alt="total bronze" /> {{bronze}}
-            </li>
-        </ul>
-      </div>
-
-      <div class="row">
+        <h1>KAZAKHSTAN ATHLETES RESULTS</h1>
         <table class="table table-hover">
         <thead>
           <tr>
-            <th scope="col">ATHLETE COUNTRY</th>
-            <td scope="col">TEAM</td>
-            <td scope="col">DIVISION</td>
-            <td scope="col">PLACE</td>
+            <th scope="col">EVENT</th>
+            <th scope="col">DATE</th>
+            <th scope="col">RESULTS</th>
+            <th scope="col">COUNTRY</th>
           </tr>
         </thead>
         <tbody>
-        % for a in athletes:
+        % for event in events:
             <tr>
-                % if a['profile_id']:
-                    % if menu == "uaejjf":
-                        <td>{{a['name']}} <a href = "/uaejjf/profile/{{a['profile_id']}}"> info </a></td>
-                    % else:
-                        <td>{{a['name']}} <a href = "/smoothcomp/profile/{{a['profile_id']}}"> info </a></td>
-                    % end                        
-                % else:
-                    <td>{{a['name']}}</td>
+                <td>{{event['name']}}</td>
+                <td>
+                % for d in event['date']:
+                    {{d}}<br>
                 % end
-                <td>{{a['team']}}</td>
-                <td>{{a['division']}}</td>
-                <td><img src="/static/img/{{a['place']}}_place.png" alt={{a['place']}} /></td>
+                </td>
+                <td><a href="/kazakhstan_results/smoothcomp/{{event['event_id']}}">GO!</a></td>
+                <td><img src="/static/css/blank.gif" class="flag flag-kz" alt="Kazakhstan" /></td>
             </tr>
         % end
-        <tr><td colspan="4"><center>Last update: {{last_update}}</center></td></tr>
         </tbody>
         </table>
       </div>
