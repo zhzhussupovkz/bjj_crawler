@@ -284,4 +284,4 @@ def smoothcomp_profile(profile_id):
     return template('views/profile_uaejjf', data)
 
 
-run(host='10.10.1.143', port=58095, server='gunicorn', workers=8)
+run(host='0.0.0.0', port=58095, server='gunicorn', workers=8)

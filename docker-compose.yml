@@ -1,0 +1,35 @@
+version: '2.3'
+
+services:
+    bjj-crawler:
+        restart: always
+        build: ./
+        command: python crawler.py
+        scale: 1
+        depends_on:
+            - bjj-rabbit
+
+    bjj-server:
+        restart: always
+        build: ./
+        command: python app.py
+        scale: 1
+        depends_on:
+            - bjj-rabbit
+        ports:
+            - "58095:58095"
+  
+    bjj-rabbit:
+        restart: always
+        image: rabbitmq:3-management
+        volumes:
+          - /opt/rabbitdata/bjj:/var/lib/rabbitmq
+        environment:
+          - RABBITMQ_DEFAULT_USER=rabbitmq
+          - RABBITMQ_DEFAULT_PASS=rabbitmq
+          - RABBITMQ_HOST=/
+          - RABBITMQ_PORT=5672
+          - RABBITMQ_HEARTBEAT=0
+        ports:
+          - "11900:5672"
+          - "11901:15672"

@@ -3,3 +3,4 @@ gunicorn
 lxml
 requests
 elasticsearch
+dateparser

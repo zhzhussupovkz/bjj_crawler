@@ -1003,10 +1003,10 @@ def uaejjf_save_results(event_id):
         results = uaejjf_event_result(event_id = event_id)
         results['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
 
-        #if results.get("athletes"):
-        #    for i in results.get("athletes"):
-        #        profile = uaejjf_parse_profile(i.get("profile_id"))
-        #        uaejjf_save_profile(profile)
+        if results.get("athletes"):
+            for i in results.get("athletes"):
+                profile = uaejjf_parse_profile(i.get("profile_id"))
+                uaejjf_save_profile(profile)
         
         res = es.index(index = "uaejjf_results", doc_type = 'athletes_result', id = event_id, body = results)
         logging.info(res)        
@@ -1153,3 +1153,5 @@ def uaejjf_save_profiles_kz():
 #print (result)
 
 #print (uaejjf_get_events_kz())
+
+#uaejjf_save_results("183")
