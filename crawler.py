@@ -14,24 +14,30 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s: %(levelnam
 es = Elasticsearch(["192.168.0.19:11200", "192.168.0.2:11200", "192.168.0.5:11200"], maxsize=25)
 
 def get_proxy():
-    proxy_url = 'https://api.getproxylist.com/proxy?' \
-                'apiKey=ffe605ca03ce2bc63433ce44032fed59b13a448b' \
-                '&allowsHttps=1' \
-                #'&lastTested=600' \
-                #'&allowsPost=1' \
-                #'&allowsCookies=1' \
-                #'&allowsCustomHeaders=1' \
-                #'&allowsUserAgentHeader=1' \
-                #'&allowsRefererHeader=1' \
-                #'&[]anonymity=high'
+    # proxy_url = 'https://api.getproxylist.com/proxy?' \
+    #             'apiKey=ffe605ca03ce2bc63433ce44032fed59b13a448b' \
+    #             '&allowsHttps=1' \
+    #             #'&lastTested=600' \
+    #             #'&allowsPost=1' \
+    #             #'&allowsCookies=1' \
+    #             #'&allowsCustomHeaders=1' \
+    #             #'&allowsUserAgentHeader=1' \
+    #             #'&allowsRefererHeader=1' \
+    #             #'&[]anonymity=high'
 
-    r = requests.get(proxy_url)
-    if r.ok:
-        proxy = json.loads(r.text)
-        proxy = str(proxy['ip']) + ':' + str(proxy['port'])
-        proxies = {"http": "http://" + proxy, "https": "https://" + proxy}
-        return proxies
-    return None
+    # r = requests.get(proxy_url)
+    # if r.ok:
+    #     proxy = json.loads(r.text)
+    #     proxy = str(proxy['ip']) + ':' + str(proxy['port'])
+    #     proxies = {"http": "http://" + proxy, "https": "https://" + proxy}
+    #     return proxies
+
+    proxies = {
+        'http': 'http://rinat94:Z0x3MrS@185.117.155.238:65233',
+        'https': 'https://rinat94:Z0x3MrS@185.117.155.238:65233'
+        }
+
+    return proxies
 
 # get events from calendar
 def get_events_calendar():
@@ -52,18 +58,20 @@ def get_events_calendar():
 # get events uaejjf
 def uaejjf_get_calendar():
     result = []
+    proxies = get_proxy()
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
     }
     s = requests.session()
-    r = s.get(url = "https://events.uaejjf.org/en/federation/1/events", headers = headers)
+    # r = s.get(url = "https://events.uaejjf.org/en/federation/1/events", headers = headers)
+    r = s.get(url = "https://ajptour.com/en/federation/1/events", headers = headers, proxies = proxies)
     if r.ok:
         calendar = r.text
         tree = lxml.html.fromstring(calendar)
         events = tree.xpath(".//section[contains(@id, 'upcoming')]//div[contains(@class, 'event-bg')]//div[contains(@class, 'content')]")
         for event in events:
             link = event.xpath(".//a/@href")
-            link = link[0] if link and "uaejjf.org" in link[0] else ''
+            link = link[0] if link and "ajptour.com" in link[0] else ''
             date = event.xpath(".//span[contains(@class, 'tag')]")
             date = date[0].text_content().strip() if date else ''
             result.append((link, date))
@@ -93,18 +101,20 @@ def smoothcomp_events(period = "upcoming"):
 # get uaejjf past events
 def uaejjf_past_events():
     result = []
+    proxies = get_proxy()
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
     }
     s = requests.session()
-    r = s.get(url = "https://events.uaejjf.org/en/federation/1/events", headers = headers)
+    # r = s.get(url = "https://events.uaejjf.org/en/federation/1/events", headers = headers)
+    r = s.get(url = "https://ajptour.com/en/federation/1/events", headers = headers, proxies = proxies)
     if r.ok:
         calendar = r.text
         tree = lxml.html.fromstring(calendar)
         events = tree.xpath(".//section[contains(@id, 'past-events')]//div[contains(@class, 'event-card')]//div[contains(@class, 'content')]")
         for event in events:
             link = event.xpath("..//a/@href")
-            link = link[0] if link and "uaejjf.org" in link[0] else ''
+            link = link[0] if link and "ajptour.com" in link[0] else ''
             date = event.xpath(".//span[contains(@class, 'tag')]")
             date = date[0].text_content().strip() if date else ''
             result.append((link, date))
@@ -120,7 +130,7 @@ def get_event_info(link):
     headers = {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
     }
-    r = requests.get(url = link, headers = headers) #, proxies = get_proxy())
+    r = requests.get(url = link, headers = headers, proxies = get_proxy())
     if r.ok:
         event_info = {}
         event = r.text
@@ -189,8 +199,14 @@ def uaejjf_get_event(e):
         name = tree.xpath(".//title")
         event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
         
-        df = date.split("-")[:1]
-        dates = [dateparser.parse(i) for i in df]
+        date_y = date.split(" ")
+        if len(date_y) == 3:
+            df = date.split("-")[:1]
+        elif len(date_y) == 2:
+            df = date.split("-")[:1]
+            df = [str(datetime.datetime.now().year) + " " + i for i in df]
+
+        dates = [datetime.datetime.strptime(i, "%Y %B %d") for i in df]
         dates = list(filter(None, dates))
         event_info['date'] = list(set(dates))
 
@@ -301,9 +317,9 @@ def save_to_db(event):
 
 def uaejjf_save(event):
     try:
-        if not event.get("img").startswith("https://events.uaejjf.org"):
-            event['img'] = "https://events.uaejjf.org" + event.get("img")
-        if event.get("img").startswith("//events"):
+        if not event.get("img").startswith("https://ajptour.com"):
+            event['img'] = "https://ajptour.com" + event.get("img")
+        if event.get("img").startswith("//ajptour"):
             event['img'] = "https:" + event.get("img")
         # save image
         r = requests.get(event.get("img"))
@@ -650,7 +666,7 @@ def uaejjf_last_events():
 # get uaejjf event result KZ
 def uaejjf_event_result(event_id = None, source = 'uaejjf'):
     if source == 'uaejjf':
-        link = "https://events.uaejjf.org/en/event/{}/results".format(event_id)
+        link = "https://ajptour.com/en/event/{}/results".format(event_id)
     else:
         link = "https://smoothcomp.com/en/event/{}/results".format(event_id)
 
@@ -732,112 +748,114 @@ def uaejjf_event_result(event_id = None, source = 'uaejjf'):
                 "bronze" : bronze_medals,
                 }
             return info
-    return []
+    return None
 
 # get uaejjf profile info
 def uaejjf_parse_profile(profile_id):
-    link = "https://events.uaejjf.org/en/profile/{}".format(profile_id)
-    s = requests.session()
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
-    }
-    r = s.get(url = link, headers = headers)
-    if r.ok:
-        profile = r.text
-        
-        tree = lxml.html.fromstring(profile)
-        profile = {
-            "id" : profile_id,
-            "url" : link,
+    profile_id = re.sub("[^0-9]", "", profile_id)
+    if profile_id:
+        link = "https://ajptour.com/en/profile/{}".format(profile_id)
+        s = requests.session()
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0'
         }
-
-        name = tree.xpath(".//div[contains(@class, 'user-info')]//h1")    
-        profile['name'] = name[0].text_content().strip() if name else ''
-
-        img = tree.xpath(".//img[contains(@class, 'image-user')]/@src")
-        profile['img'] = img[0] if img else ''
-
-        img_default = tree.xpath(".//img[contains(@class, 'Federation logo')]/@src")
-        if not profile.get("img"):
-            profile['img'] = img_default[0]
-
-        details = tree.xpath(".//div[@class='user-details']//span[contains(@class, 'margin-horizontal-xs-16')]")
-        user_info = {}
-
-        total_gold = 0
-        total_silver = 0
-        total_bronze = 0
-
-        for d in details:
-            key = d.xpath(".//small[contains(@class, 'mute')]")
-            key = key[0].text_content().strip().lower() if key else ''
-
-            val = d.xpath(".//span[contains(@class, 'details-data')]")
-            val = val[0].text_content().strip() if val else ''
-
-            user_info[key] = val
-
-        profile['info'] = user_info
-
-        event_matches = tree.xpath(".//div[contains(@class, 'event')]//div[contains(@class, 'panel-matches')]")
-        events = []
-
-        for event in event_matches:   
-            matches = []
-
-            event_id = event.xpath(".//div[contains(@class, 'panel-heading')]//a/@href")
-            event_id = event_id[0].split("/bracket/")[0].strip().split("/")[-1] if event_id else None
-
-            bracket_id = event.xpath(".//div[contains(@class, 'panel-heading')]//a/@href")
-            bracket_id = bracket_id[0].strip().split("/")[-1] if bracket_id else None
-
-            division = event.xpath(".//h2[contains(@class, 'panel-title')]//span")
-            division = division[0].text_content() if division else ''
-
-            place = event.xpath(".//div[contains(@class, 'row')][last()]//div[contains(@class, 'md-7')]")
-            place = place[0].text_content().strip().replace("Placement ", "") if place else ''
-
-            if place:
-                if place == '1':
-                    total_gold += 1
-                elif place == '2':
-                    total_silver += 1
-                elif place == '3':
-                    total_bronze += 1
-
-            matches_list = event.xpath(".//div[contains(@class, 'matches-list')]//div[contains(@class, 'row')]")
-
-            current_event = {
-                "event" : uaejjf_event_by_id(event_id), # if resource == "uaejjf" else smoothcomp_event_by_id(event_id),
-                "place" : place,
+        r = s.get(url = link, headers = headers)
+        if r.ok:
+            profile = r.text
+            
+            tree = lxml.html.fromstring(profile)
+            profile = {
+                "id" : profile_id,
+                "url" : link,
             }
 
-            for m in matches_list:
-                result = m.xpath(".//div[contains(@class, 'md-2')]")
-                result = result[0].text_content().strip() if result else ''
+            name = tree.xpath(".//div[contains(@class, 'user-info')]//h1")    
+            profile['name'] = name[0].text_content().strip() if name else ''
 
-                competitor = m.xpath(".//div[contains(@class, 'md-6')]")
-                competitor = competitor[0].text_content().strip() if competitor else ''
+            img = tree.xpath(".//img[contains(@class, 'image-user')]/@src")
+            profile['img'] = img[0] if img else ''
 
-                match_info = m.xpath(".//div[contains(@class, 'md-4 muted')]")
-                match_info = match_info[0].text_content().strip() if match_info else ''
-            
-                match = {
-                    "division" : division, 
-                    "result" : result, 
-                    "competitor" : competitor,
-                    "info" : match_info,
-                    "bracket" : bracket_id,
+            img_default = tree.xpath(".//img[contains(@class, 'Federation logo')]/@src")
+            if not profile.get("img"):
+                profile['img'] = img_default[0]
+
+            details = tree.xpath(".//div[@class='user-details']//span[contains(@class, 'margin-horizontal-xs-16')]")
+            user_info = {}
+
+            total_gold = 0
+            total_silver = 0
+            total_bronze = 0
+
+            for d in details:
+                key = d.xpath(".//small[contains(@class, 'mute')]")
+                key = key[0].text_content().strip().lower() if key else ''
+
+                val = d.xpath(".//span[contains(@class, 'details-data')]")
+                val = val[0].text_content().strip() if val else ''
+
+                user_info[key] = val
+
+            profile['info'] = user_info
+
+            event_matches = tree.xpath(".//div[contains(@class, 'event')]//div[contains(@class, 'panel-matches')]")
+            events = []
+
+            for event in event_matches:   
+                matches = []
+
+                event_id = event.xpath(".//div[contains(@class, 'panel-heading')]//a/@href")
+                event_id = event_id[0].split("/bracket/")[0].strip().split("/")[-1] if event_id else None
+
+                bracket_id = event.xpath(".//div[contains(@class, 'panel-heading')]//a/@href")
+                bracket_id = bracket_id[0].strip().split("/")[-1] if bracket_id else None
+
+                division = event.xpath(".//h2[contains(@class, 'panel-title')]//span")
+                division = division[0].text_content() if division else ''
+
+                place = event.xpath(".//div[contains(@class, 'row')][last()]//div[contains(@class, 'md-7')]")
+                place = place[0].text_content().strip().replace("Placement ", "") if place else ''
+
+                if place:
+                    if place == '1':
+                        total_gold += 1
+                    elif place == '2':
+                        total_silver += 1
+                    elif place == '3':
+                        total_bronze += 1
+
+                matches_list = event.xpath(".//div[contains(@class, 'matches-list')]//div[contains(@class, 'row')]")
+
+                current_event = {
+                    "event" : uaejjf_event_by_id(event_id), # if resource == "uaejjf" else smoothcomp_event_by_id(event_id),
+                    "place" : place,
                 }
-                matches.append(match)
 
-            current_event["matches"] = matches
-            events.append(current_event)
+                for m in matches_list:
+                    result = m.xpath(".//div[contains(@class, 'md-2')]")
+                    result = result[0].text_content().strip() if result else ''
 
-        profile['event_matches'] = events
-        profile['medals'] = {"gold" : total_gold, "silver" : total_silver, "bronze" : total_bronze}
+                    competitor = m.xpath(".//div[contains(@class, 'md-6')]")
+                    competitor = competitor[0].text_content().strip() if competitor else ''
 
-        return profile
+                    match_info = m.xpath(".//div[contains(@class, 'md-4 muted')]")
+                    match_info = match_info[0].text_content().strip() if match_info else ''
+                
+                    match = {
+                        "division" : division, 
+                        "result" : result, 
+                        "competitor" : competitor,
+                        "info" : match_info,
+                        "bracket" : bracket_id,
+                    }
+                    matches.append(match)
+
+                current_event["matches"] = matches
+                events.append(current_event)
+
+            profile['event_matches'] = events
+            profile['medals'] = {"gold" : total_gold, "silver" : total_silver, "bronze" : total_bronze}
+
+            return profile
     return {}
 
 def smoothcomp_parse_profile(profile_id):
@@ -948,26 +966,27 @@ def smoothcomp_parse_profile(profile_id):
 # uaejjf save profile
 def uaejjf_save_profile(profile):
     try:
-        if profile.get("img"):
-            if not profile.get("img").startswith("https://events.uaejjf.org"):
-                profile['img'] = "https://events.uaejjf.org" + profile.get("img")
-            if profile.get("img").startswith("//events"):
-                profile['img'] = "https:" + profile.get("img")
-    
-            # save image
-            r = requests.get(profile.get("img"))
-            if r.ok:
-                img = str(base64.b64encode(r.content).decode("utf-8"))
-        else:
-            r = requests.get("http://10.10.1.143:58095/static/img/user.png")
-            if r.ok:
-                img = str(base64.b64encode(r.content).decode("utf-8"))
-
-        profile['img'] = img
-        profile['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
+        if profile:
+            if profile.get("img"):
+                if not profile.get("img").startswith("https://ajptour.com"):
+                    profile['img'] = "https://ajptour.com" + profile.get("img")
+                if profile.get("img").startswith("//ajptour"):
+                    profile['img'] = "https:" + profile.get("img")
         
-        res = es.index(index = "uaejjf_user", doc_type = 'profile', id = profile.get("id"), body = profile)
-        logging.info(res)        
+                # save image
+                r = requests.get(profile.get("img"))
+                if r.ok:
+                    img = str(base64.b64encode(r.content).decode("utf-8"))
+            else:
+                r = requests.get("http://10.10.1.143:58095/static/img/user.png")
+                if r.ok:
+                    img = str(base64.b64encode(r.content).decode("utf-8"))
+
+            profile['img'] = img
+            profile['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
+            
+            res = es.index(index = "uaejjf_user", doc_type = 'profile', id = profile.get("id"), body = profile)
+            logging.info(res)        
     except Exception as e:
         logging.error(str(e))
 
@@ -1007,31 +1026,27 @@ def uaejjf_save_results(event_id):
             for i in results.get("athletes"):
                 profile = uaejjf_parse_profile(i.get("profile_id"))
                 uaejjf_save_profile(profile)
-        
+
         res = es.index(index = "uaejjf_results", doc_type = 'athletes_result', id = event_id, body = results)
         logging.info(res)        
     except Exception as e:
-        logging.error(str(e))
+       logging.error(str(e))
 
 # smoothcomp save event results
 def smoothcomp_save_results(event_id):
     try:
-        profiles = set()
         results = uaejjf_event_result(event_id = event_id, source = 'smoothcomp')
         results['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d")
 
         if results.get("athletes"):
             for i in results.get("athletes"):
-                profiles.add(i.get("profile_id"))
-                #profile = smoothcomp_parse_profile(i.get("profile_id"))
-                #smoothcomp_save_profile(profile)
+                profile = smoothcomp_parse_profile(i.get("profile_id"))
+                smoothcomp_save_profile(profile)
         
         res = es.index(index = "smoothcomp_results", doc_type = 'athletes_result', id = event_id, body = results)
         logging.info(res)
-        return list(profiles)
     except Exception as e:
         logging.error(str(e))
-    return []
 
 
 # get uaejjf profile from db
@@ -1111,6 +1126,7 @@ def uaejjf_save_profiles_kz():
 #uaejjf_save_profiles_kz()
 
 #events = uaejjf_past_events()
+#print (events)
 #for event in events:
 #    uaejjf_save_results(event[0].split("/")[-1])
 
@@ -1153,5 +1169,10 @@ def uaejjf_save_profiles_kz():
 #print (result)
 
 #print (uaejjf_get_events_kz())
+
+#results = uaejjf_event_result("154")
+#if results.get("athletes"):
+#    for i in results.get("athletes"):
+#        print (i)
 
 #uaejjf_save_results("183")

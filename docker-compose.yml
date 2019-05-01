@@ -18,7 +18,39 @@ services:
             - bjj-rabbit
         ports:
             - "58095:58095"
-  
+
+    uaejjf-events-task:
+        restart: always
+        build: ./
+        command: python uaejjf_events_task.py
+        scale: 1
+        depends_on:
+            - bjj-rabbit
+
+    uaejjf-event-result:
+        restart: on-failure
+        build: ./
+        command: python uaejjf_event_result.py
+        scale: 2
+        depends_on:
+            - bjj-rabbit
+    
+    uaejjf-event-info:
+        restart: on-failure
+        build: ./
+        command: python uaejjf_event_info.py
+        scale: 2
+        depends_on:
+            - bjj-rabbit
+
+    uaejjf-profile-info:
+        restart: on-failure
+        build: ./
+        command: python uaejjf_profile_info.py
+        scale: 2
+        depends_on:
+            - bjj-rabbit
+
     bjj-rabbit:
         restart: always
         image: rabbitmq:3-management

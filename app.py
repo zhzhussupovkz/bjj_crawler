@@ -3,6 +3,7 @@ from bottle import request, redirect, response
 import gunicorn
 from crawler import *
 from random import shuffle, choice
+import pika
 
 def check_user(login, pw):
     h = hashlib.sha256("{}:{}".format(login, pw).encode()).hexdigest()
