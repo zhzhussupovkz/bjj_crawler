@@ -1125,7 +1125,7 @@ def uaejjf_save_profiles_kz():
 
 #uaejjf_save_profiles_kz()
 
-#events = uaejjf_past_events()
+#events = uaejjf_past_events()[:5]
 #print (events)
 #for event in events:
 #    uaejjf_save_results(event[0].split("/")[-1])

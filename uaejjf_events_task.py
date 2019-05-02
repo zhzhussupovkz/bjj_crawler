@@ -12,8 +12,7 @@ def events_task():
     channel.queue_declare(queue = RabbitConfig.UAEJJF_EVENT_RESULT, durable = True)
     channel.queue_declare(queue = RabbitConfig.UAEJJF_EVENT_INFO, durable = True)
 
-    events = uaejjf_get_calendar()
-    events += uaejjf_past_events()
+    events = uaejjf_past_events()[:5]
 
     for event in events:
         event_url, event_date = event
@@ -39,4 +38,4 @@ def events_task():
         )
 
 events_task()
-time.sleep(3600*24)
+time.sleep(3600*6)

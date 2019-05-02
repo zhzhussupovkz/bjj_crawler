@@ -1,14 +1,6 @@
 version: '2.3'
 
 services:
-    bjj-crawler:
-        restart: always
-        build: ./
-        command: python crawler.py
-        scale: 1
-        depends_on:
-            - bjj-rabbit
-
     bjj-server:
         restart: always
         build: ./
