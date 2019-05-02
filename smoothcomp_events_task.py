@@ -12,7 +12,7 @@ def events_task():
     channel.queue_declare(queue = RabbitConfig.SMOOTHCOMP_EVENT_INFO, durable = True)
     channel.queue_declare(queue = RabbitConfig.SMOOTHCOMP_EVENT_RESULT, durable = True)
 
-    events = smoothcomp_events("past")
+    events = smoothcomp_events("past")[:5]
 
     for event in events:
         event_url, event_date = event
@@ -38,4 +38,4 @@ def events_task():
         )
 
 events_task()
-time.sleep(3600*24)
+time.sleep(3600*8)
