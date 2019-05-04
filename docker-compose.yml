@@ -42,6 +42,38 @@ services:
         scale: 2
         depends_on:
             - bjj-rabbit
+    
+    smoothcomp-events-task:
+        restart: always
+        build: ./
+        command: python smoothcomp_events_task.py
+        scale: 1
+        depends_on:
+            - bjj-rabbit
+
+    smoothcomp-event-result:
+        restart: on-failure
+        build: ./
+        command: python smoothcomp_event_result.py
+        scale: 2
+        depends_on:
+            - bjj-rabbit
+    
+    smoothcomp-event-info:
+        restart: on-failure
+        build: ./
+        command: python smoothcomp_event_info.py
+        scale: 2
+        depends_on:
+            - bjj-rabbit
+
+    smoothcomp-profile-info:
+        restart: on-failure
+        build: ./
+        command: python smoothcomp_profile_info.py
+        scale: 2
+        depends_on:
+            - bjj-rabbit
 
     bjj-rabbit:
         restart: always

@@ -38,4 +38,4 @@ def events_task():
         )
 
 events_task()
-time.sleep(3600*6)
+time.sleep(3600*12)

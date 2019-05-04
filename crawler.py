@@ -252,8 +252,14 @@ def smoothcomp_get_event(e):
         name = tree.xpath(".//title")
         event_info['name'] = name[0].text_content().strip().replace("\n", "") if name else "not found"
         
-        df = date.split("-")[:1]
-        dates = [dateparser.parse(i) for i in df]
+        date_y = date.split(" ")
+        if len(date_y) == 3:
+            df = date.split("-")[:1]
+        elif len(date_y) == 2:
+            df = date.split("-")[:1]
+            df = [str(datetime.datetime.now().year) + " " + i for i in df]
+
+        dates = [datetime.datetime.strptime(i, "%Y %B %d") for i in df]
         dates = list(filter(None, dates))
         event_info['date'] = list(set(dates))
 
