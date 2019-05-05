@@ -638,13 +638,13 @@ def smoothcomp_event_by_id(event_id):
 
 # get last uaejjf events
 def uaejjf_last_events():
-    now = datetime.datetime.now()
-    start_date = now - datetime.timedelta(days=30*6)
     query = {
         "range" : {
             "date" : {
-                "gte" : start_date.strftime("%Y-%m-%d"),
-                "lte" : now.strftime("%Y-%m-%d"),
+                #"gte" : now.strftime("%Y-%m-%d"),
+                #"lte" : end_date.strftime("%Y-%m-%d"),
+                "gte" : "now-3M",
+                "lte" :  "now",
                 "boost" : 2.0
         }
       }
@@ -656,7 +656,7 @@ def uaejjf_last_events():
           }
         }
       ]
-    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 25, 'from' : 0, 'sort' : sort})
+    res = es.search(index = 'uaejjf_test', body = {'query' : query, 'size' : 25, 'sort' : sort})
     fin = []
     for item in res['hits']['hits']:
         current = {

@@ -166,9 +166,9 @@ def all():
 @route("/kazakhstan_results/uaejjf")
 @login_required
 def kazakhstan():
-    e = ["183", "187", "181", "172", "164", "121", "108", "89", "44", "40", "30", "11", "5"]
-    events = [uaejjf_event_by_id(i) for i in e]
-    #events = uaejjf_last_events()
+    # e = ["183", "187", "181", "172", "164", "121", "108", "89", "44", "40", "30", "11", "5"]
+    # events = [uaejjf_event_by_id(i) for i in e]
+    events = uaejjf_last_events()
     #events = uaejjf_get_events_kz()
     data = {
         'title' : 'BJJ events - KAZAKHSTAN RESULTS - UAEJJF',
