@@ -668,6 +668,38 @@ def uaejjf_last_events():
         fin.append(current)
     return fin
 
+# get last smoothcomp events
+def smoothcomp_last_events():
+    query = {
+        "range" : {
+            "date" : {
+                #"gte" : now.strftime("%Y-%m-%d"),
+                #"lte" : end_date.strftime("%Y-%m-%d"),
+                "gte" : "now-2M",
+                "lte" :  "now",
+                "boost" : 2.0
+        }
+      }
+    }
+    sort = [
+        {
+          "date": {
+            "order": "desc"
+          }
+        }
+      ]
+    res = es.search(index = 'smoothcomp_events', body = {'query' : query, 'size' : 25, 'sort' : sort})
+    fin = []
+    for item in res['hits']['hits']:
+        current = {
+            "url" : item['_source']['url'],
+            "date" : item['_source']['date'],
+            "name" : item['_source']['name'],
+            "event_id" : item['_source']['event_id'],
+            }
+        fin.append(current)
+    return fin
+
 
 # get uaejjf event result KZ
 def uaejjf_event_result(event_id = None, source = 'uaejjf'):

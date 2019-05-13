@@ -185,8 +185,9 @@ def kazakhstan():
 @route("/kazakhstan_results/smoothcomp")
 @login_required
 def kazakhstan_smoothcomp():
-    e = ["1851", "1757", "1195", "1175", "1152", "1176", "1301", "1005", "1004"]
-    events = [smoothcomp_event_by_id(i) for i in e]
+    # e = ["1851", "1757", "1195", "1175", "1152", "1176", "1301", "1005", "1004"]
+    # events = [smoothcomp_event_by_id(i) for i in e]
+    events = smoothcomp_last_events()
     data = {
         'title' : 'BJJ events - KAZAKHSTAN RESULTS - Smoothcomp',
         'header' : 'BJJ events',
